@@ -1,6 +1,6 @@
-# Contributing to LEAP
+# Contributing to APEX
 
-Thank you for your interest in contributing! LEAP is a UniHack 2026 submission but welcomes improvements.
+Thank you for your interest in contributing! APEX is a UniHack 2026 submission but welcomes improvements.
 
 ## Development Setup
 

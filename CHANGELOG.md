@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to LEAP are documented here.
+All notable changes to APEX are documented here.
 
 ## [1.0.0] — 2026-08-20 — UniHack Final Submission
 

@@ -32,7 +32,7 @@ Files are loaded once at pipeline startup and cached in memory. If files are abs
 
 ## Official Manufacturer Source Policy
 
-LEAP enforces a **strict no-marketplace rule** for web enrichment:
+APEX enforces a **strict no-marketplace rule** for web enrichment:
 
 ### ✅ Valid source URLs
 - `https://www.muellerindustries.com/...`
@@ -92,7 +92,7 @@ https://www.rheem.com/products/residential/water-heating/
 
 ## No-Hallucination Rule
 
-LEAP's no-hallucination safeguard is implemented at the pipeline level:
+APEX's no-hallucination safeguard is implemented at the pipeline level:
 
 1. **Evidence required**: Every non-`input` field must have a `resource_url` or `source_url`
 2. **Blank over guessing**: If a value cannot be sourced, it is left blank and flagged for review

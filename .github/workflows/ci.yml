@@ -1,7 +1,7 @@
 # .github/workflows/ci.yml
-# LEAP CI/CD Pipeline — runs on every push and pull request
+# APEX CI/CD Pipeline — runs on every push and pull request
 
-name: LEAP CI
+name: APEX CI
 
 on:
   push:
@@ -183,10 +183,10 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t leap-pipeline:${{ github.sha }} .
-          docker build -t leap-pipeline:latest .
+          docker build -t apex-pipeline:${{ github.sha }} .
+          docker build -t apex-pipeline:latest .
 
       - name: Smoke test Docker image
         run: |
-          docker run --rm leap-pipeline:latest \
+          docker run --rm apex-pipeline:latest \
             python3 -c "from core.catalog_db import init_db; init_db(); print('✅ Docker OK')"

@@ -70,8 +70,8 @@ def get_client():
             api_key=key,
             base_url=_OPENROUTER_BASE_URL,
             default_headers={
-                "HTTP-Referer": "https://github.com/leap-unihack",
-                "X-Title": "LEAP UniHack Pipeline",
+                "HTTP-Referer": "https://github.com/chourasiavinit9-dev/APEX-Ai",
+                "X-Title": "APEX Product Intelligence Pipeline",
             },
         )
     else:

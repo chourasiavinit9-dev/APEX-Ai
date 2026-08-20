@@ -1,4 +1,4 @@
-# ARCHITECTURE.md — LEAP Pipeline Architecture
+# ARCHITECTURE.md — APEX Pipeline Architecture
 
 ## End-to-End Pipeline Data Flow
 
@@ -182,7 +182,7 @@ All LLM calls have heuristic fallbacks that run for free.
 
 ## Why Local-First Reduces Cost
 
-| Component | Typical Cost | LEAP Cost |
+| Component | Typical Cost | APEX Cost |
 |---|---|---|
 | Brand matching | Embedding API | $0 (RapidFuzz) |
 | LOV validation | LLM call | $0 (Pandas lookup) |

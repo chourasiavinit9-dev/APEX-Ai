@@ -1,8 +1,8 @@
-# COST_MODEL.md — LEAP Cost Analysis
+# COST_MODEL.md — APEX Cost Analysis
 
 ## Total Cost: ~$2 per 1,000 SKUs
 
-LEAP achieves a 7× cost reduction over a generic all-LLM pipeline through aggressive local-first design.
+APEX achieves a 7× cost reduction over a generic all-LLM pipeline through aggressive local-first design.
 
 ---
 
@@ -62,7 +62,7 @@ LEAP achieves a 7× cost reduction over a generic all-LLM pipeline through aggre
 
 ## LLM Usage: Selective, Not Universal
 
-LEAP calls an LLM only when **deterministic rules cannot resolve** the input:
+APEX calls an LLM only when **deterministic rules cannot resolve** the input:
 
 ### When LLM is called:
 1. **Taxonomy classification**: Ambiguous product type from abbreviation (e.g. `CPLG` → Coupling)
@@ -87,7 +87,7 @@ LEAP calls an LLM only when **deterministic rules cannot resolve** the input:
 
 | Pipeline Type | Architecture | Cost/1K rows |
 |---|---|---|
-| **LEAP** | Local-first + selective LLM | **~$2** |
+| **APEX** | Local-first + selective LLM | **~$2** |
 | Generic LLM pipeline | Every step via GPT-4 / Claude 3.5 | ~$14 |
 | Embedding-based pipeline | OpenAI Embeddings + Claude | ~$6 |
 | Rules-only pipeline | No LLM | $0 (but low quality) |
@@ -96,7 +96,7 @@ LEAP calls an LLM only when **deterministic rules cannot resolve** the input:
 
 ## Infrastructure Cost: $0
 
-| Requirement | LEAP | Typical Competitor |
+| Requirement | APEX | Typical Competitor |
 |---|---|---|
 | Cloud vector DB | ❌ Not needed | Pinecone ~$70/month |
 | GPU for embeddings | ❌ Not needed | Cloud GPU ~$2/hr |
@@ -109,7 +109,7 @@ LEAP calls an LLM only when **deterministic rules cannot resolve** the input:
 
 ## Scaling Projection
 
-| Volume | LEAP Cost | Generic Pipeline |
+| Volume | APEX Cost | Generic Pipeline |
 |---|---|---|
 | 1,000 rows | ~$2.00 | ~$14.00 |
 | 10,000 rows | ~$20.00 | ~$140.00 |
@@ -122,7 +122,7 @@ At scale, the heuristic-first approach means a growing fraction of rows (those w
 
 ## Heuristic-Only Mode (Zero Cost)
 
-Without an API key, LEAP runs fully local:
+Without an API key, APEX runs fully local:
 - Placeholder detection: ✅ Free
 - Brand normalization: ✅ Free
 - UOM normalization: ✅ Free

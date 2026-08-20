@@ -1,5 +1,5 @@
 """
-ui/unihack_app.py — LEAP Live Dashboard.
+ui/unihack_app.py — APEX Live Dashboard.
 
 Full pipeline control: upload → enrich → review → approve → export.
 Local-first: SQLite + ChromaDB + NetworkX. No cloud required.
@@ -51,11 +51,11 @@ except Exception:
         def __init__(self):
             self.user_id = "guest"
             self.org_id = "demo"
-            self.email = "guest@leap.local"
+            self.email = "demo@apex.io"
             self.role = "admin"
 
 st.set_page_config(
-    page_title="LEAP — Product Intelligence",
+    page_title="APEX — Product Intelligence",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -162,7 +162,7 @@ def _render_app(user: AuthenticatedUser):
     <div style='background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;
                 padding:6px 16px;font-size:12px;display:flex;align-items:center;
                 gap:10px;margin-bottom:8px'>
-      ⚡ <b>LEAP</b> &nbsp;·&nbsp; UniHack 2026
+      ⚡ <b>APEX</b> &nbsp;·&nbsp; UniHack 2026
       <span style='background:#dcfce7;color:#15803d;padding:2px 10px;
             border-radius:10px;font-size:11px;font-weight:600'>Local-First</span>
       <span style='background:#dbeafe;color:#1e40af;padding:2px 10px;
@@ -173,7 +173,7 @@ def _render_app(user: AuthenticatedUser):
         st.markdown("""
         <div style='padding:8px 0 4px'>
           <span style='font-size:22px'>⚡</span>
-          <span style='font-size:16px;font-weight:700;color:#f8fafc;margin-left:6px'>LEAP</span>
+          <span style='font-size:16px;font-weight:700;color:#f8fafc;margin-left:6px'>APEX</span>
           <div style='font-size:10px;color:#94a3b8;margin-left:32px;margin-top:-2px'>
             UniHack 2026
           </div>
@@ -1240,7 +1240,7 @@ def _get_all_products_for_export(job_id):
 def _page_cost_model():
     import pandas as pd
     st.title("💰 Cost Model")
-    st.caption("Why LEAP costs ~$2/1,000 rows instead of $14")
+    st.caption("Why APEX costs ~$2/1,000 rows instead of $14")
 
     costs = [
         ("Placeholder filter", "Python string ops", "$0", "Free — 100% deterministic"),
@@ -1262,7 +1262,7 @@ def _page_cost_model():
     col1.markdown("""
     <div style='background:#eff6ff;border:2px solid #93c5fd;border-radius:12px;
                 padding:20px;text-align:center'>
-      <div style='font-size:11px;color:#1d4ed8;font-weight:600'>LEAP PIPELINE</div>
+      <div style='font-size:11px;color:#1d4ed8;font-weight:600'>APEX PIPELINE</div>
       <div style='font-size:40px;font-weight:700;color:#1d4ed8'>~$2</div>
       <div style='font-size:12px;color:#3b82f6'>per 1,000 rows</div>
     </div>""", unsafe_allow_html=True)

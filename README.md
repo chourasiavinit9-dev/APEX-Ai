@@ -1,4 +1,4 @@
-# ⚡ LEAP — Lean Enrichment & Attribute Pipeline
+# ⚡ APEX — AI-Powered Product Intelligence
 
 **UniHack 2026 submission by Team APEX**
 
@@ -11,46 +11,37 @@
 
 > AI-powered product intelligence for industrial commerce — local-first, evidence-driven, demonstrably cost-effective at ~$2/1,000 SKUs.
 
-![LEAP Architecture](docs/images/architecture.jpg)
+![APEX Architecture](docs/images/architecture.jpg)
 
 
 ---
 
 ## Problem Statement
 
-Industrial distributors receive raw, incomplete, inconsistent product data:
+Industrial distributors receive incomplete, cryptic, and inconsistent product data. A raw row may contain only an ambiguous part number and noisy description:
 
-```
+```text
 Mfg_Part_Num: CPLG-38-BR
 Part_Desc:    3/8 CPLG BRS 150#
-E1_Brand:     -- Unbranded --
-Part_Manuf:   ACME IND
+E1_Brand:     ACME IND
+Part_Manuf:   -- Unbranded --
 ```
 
-This cannot be published to a commerce catalog. It needs to become:
-
-- A canonical manufacturer and brand (with ® / ™)
-- A Unilog classpath and UNSPSC code
-- LOV-compliant structured attributes with approved UOM abbreviations
-- Five description formats (Invoice ≤40 chars, Mobile 60–80, Short, Long, Marketing Copy)
-- Source-traced evidence for every populated field
-- Validation against 161,000+ LOV values from the UniHack reference files
+**APEX transforms this into a complete, standardized, traceable, and commerce-ready product record.**
 
 ---
 
-## Solution Summary
+## What APEX Does
 
-LEAP is a modular enrichment pipeline that transforms raw catalogue rows into commerce-ready product records. It prioritizes **deterministic rules over LLM calls** — 80% of the pipeline runs for free using lookup tables, fuzzy brand matching, and rule-based attribute extraction. LLMs (Claude Haiku) are used only for ambiguous cases: taxonomy classification, unstructured description parsing, and 5-format description generation. A live Streamlit dashboard connects all pipeline stages with a human-review workflow, SQLite audit trail, and ChromaDB vector index for approved records.
-
----
-
-## Architecture
+APEX is a modular enrichment pipeline that transforms raw catalogue rows into commerce-ready product records. It prioritizes **deterministic rules over LLM calls** — 80% of the pipeline runs for free using lookup tables, fuzzy brand matching, and rule-based attribute extraction. LLMs (Claude Haiku) are used only for ambiguous cases: taxonomy classification, unstructured description parsing, and 5-format description generation. A live dashboard connects all pipeline stages with a human-review workflow, SQLite audit trail, and ChromaDB vector index for approved records.
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  LEAP Dashboard (Streamlit)          │
-│  Dashboard │ Pipeline │ Products │ Review │ Export   │
-└────────────────────┬────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                  APEX Dashboard                      │
+│   Upload CSV · Live Progress · Evidence Drawer       │
+│   Priority Review Queue · 3-Format Export            │
+└──────────────────────────┬───────────────────────────┘
+
                      │
          ┌───────────▼──────────────┐
          │    Enrichment Pipeline   │
@@ -155,7 +146,7 @@ E1_Brand:     -- Unbranded --
 Part_Manuf:   ACME IND
 ```
 
-**LEAP Output:**
+**APEX Output:**
 ```
 Brand:            Mueller Industries®
 Manufacturer:     Mueller Industries
