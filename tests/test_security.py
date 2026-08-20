@@ -77,9 +77,12 @@ def test_jwt_returns_authenticated_user_type():
 
 def test_jwt_tampered_signature_rejected():
     token, _ = _make_token()
-    # Flip the last character of the signature
-    tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+    parts = token.split(".")
+    # Tamper the signature significantly
+    tampered_sig = "X" + parts[2][1:]
+    tampered = f"{parts[0]}.{parts[1]}.{tampered_sig}"
     assert verify_token(tampered) is None
+
 
 
 def test_jwt_wrong_secret_rejected():
