@@ -1,0 +1,67 @@
+{
+  "$schema": "product_intelligence_v1",
+  "product_type": "valve",
+  "display_name": "Valve",
+  "required_fields": ["valve_type", "connection_size", "material", "pressure_rating"],
+  "attributes": {
+    "valve_type": {
+      "type": "string",
+      "unit": null,
+      "examples": ["Ball valve", "Gate valve", "Globe valve", "Butterfly valve", "Check valve", "Needle valve", "Relief valve"]
+    },
+    "material": {
+      "type": "string",
+      "unit": null,
+      "examples": ["Carbon steel", "Stainless steel 316", "Cast iron", "Bronze", "PVC", "PTFE"]
+    },
+    "connection_size": {
+      "type": "float",
+      "unit": "DN",
+      "description": "Nominal diameter in DN (mm)",
+      "range": [3, 3000]
+    },
+    "connection_type": {
+      "type": "string",
+      "unit": null,
+      "examples": ["Flanged", "Threaded NPT", "Threaded BSP", "Butt weld", "Socket weld", "Wafer"]
+    },
+    "pressure_rating": {
+      "type": "float",
+      "unit": "bar",
+      "range": [0.1, 1000]
+    },
+    "operating_temp_min": {
+      "type": "float",
+      "unit": "°C",
+      "range": [-200, 0]
+    },
+    "operating_temp_max": {
+      "type": "float",
+      "unit": "°C",
+      "range": [50, 1000]
+    },
+    "actuation": {
+      "type": "string",
+      "unit": null,
+      "examples": ["Manual handwheel", "Manual lever", "Pneumatic", "Electric", "Hydraulic", "Spring return"]
+    },
+    "cv_flow_coefficient": {
+      "type": "float",
+      "unit": null,
+      "range": [0.001, 100000]
+    },
+    "body_rating": {
+      "type": "string",
+      "unit": null,
+      "examples": ["ASME Class 150", "ASME Class 300", "ASME Class 600", "PN10", "PN16", "PN25", "PN40"]
+    },
+    "leakage_class": {
+      "type": "string",
+      "unit": null,
+      "examples": ["ANSI/FCI 70-2 Class IV", "Class V", "Class VI", "Zero leakage"]
+    },
+    "certifications": { "type": "array", "unit": null },
+    "compatible_standards": { "type": "array", "unit": null },
+    "weight": { "type": "float", "unit": "kg", "range": [0.01, 50000] }
+  }
+}

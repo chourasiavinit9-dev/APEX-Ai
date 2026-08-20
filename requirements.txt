@@ -1,0 +1,15 @@
+anthropic>=0.40.0
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
+streamlit>=1.36.0
+pandas>=2.0.0
+trafilatura>=1.9.0
+docling>=2.0.0
+python-dotenv>=1.0.0
+rich>=13.0.0
+click>=8.1.0
+pydantic>=2.0.0
+networkx>=3.3
+pytest>=8.0.0
+bcrypt>=4.0.0
+PyJWT>=2.8.0

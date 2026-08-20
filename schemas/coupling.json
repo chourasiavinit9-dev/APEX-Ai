@@ -1,0 +1,24 @@
+{
+  "$schema": "product_intelligence_v1",
+  "product_type": "coupling",
+  "display_name": "Coupling",
+  "required_fields": ["coupling_type", "bore_diameter_1", "torque_max", "material"],
+  "attributes": {
+    "coupling_type": { "type": "string", "unit": null, "examples": ["Jaw coupling", "Disc coupling", "Grid coupling", "Gear coupling", "Oldham coupling", "Bellows coupling", "Rigid coupling", "Fluid coupling"] },
+    "bore_diameter_1": { "type": "float", "unit": "mm", "range": [1, 2000] },
+    "bore_diameter_2": { "type": "float", "unit": "mm", "range": [1, 2000] },
+    "outer_diameter": { "type": "float", "unit": "mm", "range": [5, 3000] },
+    "length": { "type": "float", "unit": "mm", "range": [5, 2000] },
+    "torque_max": { "type": "float", "unit": "Nm", "range": [0.01, 5000000] },
+    "speed_max": { "type": "float", "unit": "rpm", "range": [1, 100000] },
+    "material": { "type": "string", "unit": null },
+    "misalignment_angular": { "type": "float", "unit": "°", "range": [0, 10] },
+    "misalignment_parallel": { "type": "float", "unit": "mm" },
+    "misalignment_axial": { "type": "float", "unit": "mm" },
+    "operating_temp_min": { "type": "float", "unit": "°C" },
+    "operating_temp_max": { "type": "float", "unit": "°C" },
+    "moment_of_inertia": { "type": "float", "unit": "kg·m²" },
+    "certifications": { "type": "array", "unit": null },
+    "weight": { "type": "float", "unit": "kg" }
+  }
+}

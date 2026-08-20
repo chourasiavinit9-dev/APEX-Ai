@@ -1,0 +1,24 @@
+{
+  "$schema": "product_intelligence_v1",
+  "product_type": "pump",
+  "display_name": "Pump",
+  "required_fields": ["pump_type", "flow_rate_max", "head_max", "motor_power"],
+  "attributes": {
+    "pump_type": { "type": "string", "unit": null, "examples": ["Centrifugal", "Gear pump", "Peristaltic", "Diaphragm", "Screw pump", "Submersible", "Multistage"] },
+    "flow_rate_max": { "type": "float", "unit": "m³/h", "range": [0.001, 100000] },
+    "head_max": { "type": "float", "unit": "m", "range": [0.1, 10000] },
+    "motor_power": { "type": "float", "unit": "kW", "range": [0.01, 50000] },
+    "operating_speed": { "type": "float", "unit": "rpm", "range": [100, 20000] },
+    "inlet_size": { "type": "float", "unit": "DN", "range": [10, 2000] },
+    "outlet_size": { "type": "float", "unit": "DN", "range": [10, 2000] },
+    "material_casing": { "type": "string", "unit": null },
+    "material_impeller": { "type": "string", "unit": null },
+    "seal_type": { "type": "string", "unit": null, "examples": ["Mechanical seal", "Lip seal", "Magnetic drive", "Canned motor"] },
+    "efficiency": { "type": "float", "unit": "%", "range": [1, 99] },
+    "operating_temp_min": { "type": "float", "unit": "°C" },
+    "operating_temp_max": { "type": "float", "unit": "°C" },
+    "max_viscosity": { "type": "float", "unit": "cP" },
+    "certifications": { "type": "array", "unit": null },
+    "weight": { "type": "float", "unit": "kg" }
+  }
+}

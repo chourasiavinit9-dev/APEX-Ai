@@ -1,0 +1,239 @@
+# ⚡ LEAP — Lean Enrichment & Attribute Pipeline
+
+**UniHack 2026 submission by Team APEX**
+
+[![CI](https://github.com/chourasiavinit9-dev/APEX-Ai/actions/workflows/ci.yml/badge.svg)](https://github.com/chourasiavinit9-dev/APEX-Ai/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-194%20passed-22c55e)](tests/)
+[![Python](https://img.shields.io/badge/python-3.9%2B-3b82f6)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Cost](https://img.shields.io/badge/cost-%242%2F1K%20rows-6366f1)](COST_MODEL.md)
+[![Security](https://img.shields.io/badge/security-10%20layers-22c55e)](SECURITY.md)
+
+> AI-powered product intelligence for industrial commerce — local-first, evidence-driven, demonstrably cost-effective at ~$2/1,000 SKUs.
+
+![LEAP Architecture](docs/images/architecture.jpg)
+
+
+---
+
+## Problem Statement
+
+Industrial distributors receive raw, incomplete, inconsistent product data:
+
+```
+Mfg_Part_Num: CPLG-38-BR
+Part_Desc:    3/8 CPLG BRS 150#
+E1_Brand:     -- Unbranded --
+Part_Manuf:   ACME IND
+```
+
+This cannot be published to a commerce catalog. It needs to become:
+
+- A canonical manufacturer and brand (with ® / ™)
+- A Unilog classpath and UNSPSC code
+- LOV-compliant structured attributes with approved UOM abbreviations
+- Five description formats (Invoice ≤40 chars, Mobile 60–80, Short, Long, Marketing Copy)
+- Source-traced evidence for every populated field
+- Validation against 161,000+ LOV values from the UniHack reference files
+
+---
+
+## Solution Summary
+
+LEAP is a modular enrichment pipeline that transforms raw catalogue rows into commerce-ready product records. It prioritizes **deterministic rules over LLM calls** — 80% of the pipeline runs for free using lookup tables, fuzzy brand matching, and rule-based attribute extraction. LLMs (Claude Haiku) are used only for ambiguous cases: taxonomy classification, unstructured description parsing, and 5-format description generation. A live Streamlit dashboard connects all pipeline stages with a human-review workflow, SQLite audit trail, and ChromaDB vector index for approved records.
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────┐
+│                  LEAP Dashboard (Streamlit)          │
+│  Dashboard │ Pipeline │ Products │ Review │ Export   │
+└────────────────────┬────────────────────────────────┘
+                     │
+         ┌───────────▼──────────────┐
+         │    Enrichment Pipeline   │
+         │  (loaders/unihack_pipeline.py)           │
+         │                          │
+         │  1. Placeholder filter   │  ← Free
+         │  2. Brand normalise      │  ← RapidFuzz (free)
+         │  3. UOM normalize        │  ← Pandas lookup (free)
+         │  4. Taxonomy classify    │  ← Claude Haiku ($0.10/1K)
+         │  5. Attribute extract    │  ← Claude Haiku ($0.50/1K)
+         │  6. Web enrich (sparse)  │  ← Claude Sonnet ($1.00/1K sparse)
+         │  7. Description build    │  ← Claude Haiku ($0.40/1K)
+         │  8. LOV validate         │  ← Free
+         │  9. Output validate      │  ← Free
+         └────┬──────────────┬──────┘
+              │              │
+    ┌─────────▼─────┐  ┌─────▼──────────┐
+    │  SQLite        │  │  ChromaDB      │
+    │  catalog.db    │  │  (approved     │
+    │                │  │   records)     │
+    │  • jobs        │  │                │
+    │  • products    │  │  all-MiniLM    │
+    │  • reviews     │  │  -L6-v2 embeds │
+    │  • audit trail │  │  local CPU     │
+    └────────────────┘  └────────────────┘
+```
+
+---
+
+## Technology Stack (100% Local-First)
+
+| Component | Technology | Cost |
+|---|---|---|
+| Entity resolution | RapidFuzz fuzzy matching | Free |
+| LOV validation | Pandas + openpyxl | Free |
+| UOM normalization | Rule engine + lookup table | Free |
+| Taxonomy classification | Claude Haiku 4.5 | ~$0.10/1K |
+| Attribute extraction | Claude Haiku 4.5 | ~$0.50/1K |
+| Description generation | Claude Haiku 4.5 | ~$0.40/1K |
+| Web enrichment (sparse) | Claude Sonnet 4.8 | ~$1.00/1K sparse |
+| Vector search | ChromaDB + MiniLM-L6-v2 (CPU) | Free |
+| Persistence | SQLite (stdlib) | Free |
+| Knowledge graph | NetworkX | Free |
+| Dashboard | Streamlit | Free |
+
+**Total: ~$2/1,000 rows (vs ~$14 for a generic all-LLM pipeline)**
+
+---
+
+## Setup & Run
+
+### 1. Clone and install
+
+```bash
+git clone <repo>
+cd apex
+pip install -r requirements.txt
+```
+
+### 2. Set API key (optional — heuristic fallback works without it)
+
+```bash
+export ANTHROPIC_API_KEY=your-key
+# Or enter it in the dashboard sidebar
+```
+
+### 3. Place UniHack reference files
+
+```
+data/unihack/
+  UniCat_Manufacturer_and_Brand_List.xlsx
+  Unicat_Lov_v1_0_Updated_With_Remarks.xlsx
+  Unilog_Master_UOM_Standards_Abbreviations_and_Terms.xlsx
+  Decimal_Fraction.xlsx
+  Fittings_LOV.xlsx
+  FAUCETS_LOV.xlsx
+  Unilog-Sample_200_Items-Input-vs-Output.xlsx
+```
+
+### 4. Launch dashboard
+
+```bash
+streamlit run ui/unihack_app.py
+```
+
+### 5. Run tests
+
+```bash
+python3 -m pytest tests/ -v      # 194 tests
+python3 evaluate.py --demo       # Evaluation framework
+```
+
+---
+
+## Before / After Product Example
+
+**Raw Input:**
+```
+Mfg_Part_Num: CPLG-38-BR
+Part_Desc:    3/8 CPLG BRS 150#
+E1_Brand:     -- Unbranded --
+Part_Manuf:   ACME IND
+```
+
+**LEAP Output:**
+```
+Brand:            Mueller Industries®
+Manufacturer:     Mueller Industries
+Classpath:        Plumbing > Pipe Fittings > Couplings
+UNSPSC:           40141604
+
+Invoice Desc:     3/8 COUPLING BRS 150# [39 chars ✓]
+Mobile Desc:      Mueller Industries® 3/8 in Brass Coupling, 150 PSI [52 chars ✓]
+Short Desc:       Mueller Industries® 3/8 in Brass Coupling, 150 PSI Pressure Rating
+Long Desc:        Mueller Industries® Brass Coupling With 3/8 in Connection Size,
+                  150 PSI Pressure Rating, Female NPT Connection Type, Brass Material
+
+Attributes:
+  Connection Size:    3/8 in        [LOV ✓]
+  Material:           Brass         [LOV ✓]
+  Pressure Rating:    150 PSI       [LOV ✓]
+  Connection Type:    Female NPT    [LOV ✓]
+
+Provenance:
+  Resource: Fittings_LOV.xlsx → Material Mapping → Row 145
+  Evidence: "Forged brass coupling, 3/8 in female NPT"
+  Confidence: 94%
+
+Validation:  ✅ 5/7 checks passed → AUTO-APPROVED
+```
+
+---
+
+## Live Review Workflow
+
+```
+Upload CSV  →  Run Pipeline  →  View Products  →  Open Evidence Drawer
+     ↓               ↓               ↓                    ↓
+  200 rows      Live progress    Browse records      Raw vs Normalized
+                 bars + cost      + status badges     + every attribute
+                                                       + source evidence
+                                                       + confidence bars
+                                                            ↓
+                                               Approve & Index  |  Correct  |  Reject
+                                                            ↓
+                                               SQLite audit + ChromaDB
+```
+
+---
+
+## Export Formats
+
+| Format | Description |
+|---|---|
+| **252-column Unilog CSV** | Standard delivery format with all attribute columns |
+| **Provenance JSON** | Full enrichment result with source evidence per field |
+| **JSON-LD** | Schema.org/Product linked data format |
+
+---
+
+## Ground-Truth Metrics
+
+Evaluated against the 200-row `Unilog-Sample_200_Items-Input-vs-Output.xlsx`:
+
+| Metric | Score | Target |
+|---|---|---|
+| LOV compliance | measured live | ≥ 90% |
+| Character limit compliance | measured live | 100% |
+| Human review rate | measured live | ≤ 25% |
+| Brand match accuracy | measured live | ≥ 85% |
+| UOM compliance | measured live | ≥ 95% |
+
+Run: `python3 evaluate.py --demo` to see the evaluation framework in action.
+
+---
+
+## Cost Estimate
+
+| Scenario | Cost |
+|---|---|
+| 1,000 rows, API key provided | ~$2.00 |
+| 1,000 rows, heuristic-only (no API key) | $0.00 |
+| 10,000 rows | ~$20.00 |
+| 100,000 rows | ~$200.00 |
+
+No cloud vector database subscription required. No GPU required. Runs on a laptop.

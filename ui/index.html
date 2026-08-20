@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX — Product Intelligence Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --sidebar: #161b22;
+    --card: #1c2128;
+    --card2: #21262d;
+    --border: #30363d;
+    --green: #c3f53c;
+    --green-dim: #8baa2a;
+    --green-bg: #1a2510;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --yellow: #d29922;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 260px; min-width: 260px; background: var(--sidebar);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    padding: 20px 0;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; padding: 0 20px 24px; }
+  .logo-icon {
+    width: 34px; height: 34px; background: var(--green); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; color: #000;
+  }
+  .logo-text { font-size: 18px; font-weight: 700; color: var(--text); }
+
+  .nav-section { padding: 0 12px 8px; }
+  .nav-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 0 8px 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+    border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 500;
+    color: var(--muted); transition: all .15s; position: relative;
+  }
+  .nav-item:hover { background: var(--card2); color: var(--text); }
+  .nav-item.active { background: var(--green-bg); color: var(--green); }
+  .nav-item svg { width: 16px; height: 16px; opacity: .75; flex-shrink: 0; }
+  .nav-item.active svg { opacity: 1; }
+  .badge {
+    margin-left: auto; font-size: 10px; font-weight: 600; padding: 2px 7px;
+    border-radius: 20px; background: var(--green); color: #000;
+  }
+  .badge.new { background: var(--blue); color: #fff; }
+
+  .sidebar-bottom { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--border); }
+  .sys-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; padding: 0 8px 8px; }
+  .user-card { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: #000; flex-shrink: 0; }
+  .user-name { font-size: 13px; font-weight: 600; }
+  .user-role { font-size: 11px; color: var(--muted); }
+
+  /* ── MAIN ── */
+  .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    display: flex; align-items: center; gap: 16px; padding: 16px 28px;
+    border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 10;
+  }
+  .page-title { font-size: 22px; font-weight: 700; flex: 1; }
+  .search-box {
+    display: flex; align-items: center; gap: 8px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 14px;
+    width: 280px; font-size: 13px; color: var(--muted);
+  }
+  .search-box input { background: none; border: none; outline: none; color: var(--text); font-size: 13px; font-family: inherit; width: 100%; }
+  .kbd { font-size: 10px; background: var(--card2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; color: var(--muted); margin-left: auto; }
+  .notif-btn {
+    width: 36px; height: 36px; border-radius: 8px; background: var(--card);
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;
+  }
+  .notif-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; position: absolute; top: 6px; right: 6px; }
+  .run-btn {
+    display: flex; align-items: center; gap: 7px; background: var(--green);
+    color: #000; font-weight: 600; font-size: 13px; padding: 8px 18px;
+    border-radius: 8px; border: none; cursor: pointer; transition: opacity .15s;
+  }
+  .run-btn:hover { opacity: .88; }
+
+  /* ── CONTENT ── */
+  .content { padding: 24px 28px; flex: 1; }
+
+  /* ── METRIC CARDS ── */
+  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .metric-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .metric-label { font-size: 12px; color: var(--muted); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .metric-value { font-size: 32px; font-weight: 700; line-height: 1; }
+  .metric-sub { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+  .metric-sub .up { color: var(--green); }
+  .metric-bar { display: flex; gap: 2px; align-items: flex-end; height: 28px; margin-top: 4px; }
+  .metric-bar span { width: 6px; background: var(--green-dim); border-radius: 2px; opacity: .5; }
+  .metric-bar span:last-child, .metric-bar span:nth-last-child(2) { opacity: 1; background: var(--green); }
+
+  /* ── CHARTS ROW ── */
+  .charts-row { display: grid; grid-template-columns: 1fr 320px; gap: 16px; margin-bottom: 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .card-title { font-size: 14px; font-weight: 600; }
+  .filter-btn {
+    display: flex; align-items: center; gap: 6px; background: var(--card2);
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 12px;
+    font-size: 12px; color: var(--muted); cursor: pointer;
+  }
+
+  /* Bar chart */
+  .bar-chart { display: flex; align-items: flex-end; gap: 10px; height: 140px; margin-bottom: 8px; }
+  .bar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--green-dim); transition: background .15s; cursor: pointer; }
+  .bar:hover, .bar.active { background: var(--green); }
+  .bar-label { font-size: 9px; color: var(--muted); text-align: center; line-height: 1.3; }
+
+  /* SKU summary */
+  .sku-big { font-size: 48px; font-weight: 800; color: var(--green); line-height: 1; }
+  .sku-sub { font-size: 13px; color: var(--muted); margin: 4px 0 16px; }
+  .sku-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .sku-row:last-child { border-bottom: none; }
+  .sku-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--green-bg); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .sku-row-title { font-size: 13px; font-weight: 500; }
+  .sku-row-val { font-size: 11px; color: var(--green); font-weight: 600; margin-left: auto; }
+
+  /* ── TABLE ── */
+  .table-row-main { display: grid; grid-template-columns: 1fr 320px; gap: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; cursor: pointer; }
+  tbody tr:hover { background: var(--card2); }
+  tbody td { padding: 11px 12px; }
+  .mpn { font-family: monospace; font-size: 12px; color: var(--blue); }
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px;
+    border-radius: 20px; font-size: 11px; font-weight: 600;
+  }
+  .status-enriched { background: var(--green-bg); color: var(--green); }
+  .status-review   { background: #2d1f00; color: var(--yellow); }
+  .status-pending  { background: var(--card2); color: var(--muted); }
+
+  /* Pipeline stages */
+  .stage-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .stage-name { font-size: 12px; width: 90px; color: var(--muted); }
+  .stage-track { flex: 1; height: 6px; background: var(--card2); border-radius: 3px; overflow: hidden; }
+  .stage-fill { height: 100%; background: var(--green); border-radius: 3px; }
+  .stage-val { font-size: 12px; font-weight: 600; color: var(--green); width: 40px; text-align: right; }
+
+  /* Page sections hidden by default */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Pipeline page */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 48px;
+    text-align: center; cursor: pointer; transition: border-color .2s, background .2s;
+  }
+  .upload-zone:hover { border-color: var(--green); background: var(--green-bg); }
+  .upload-icon { font-size: 40px; margin-bottom: 12px; }
+  .upload-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+  .upload-sub { font-size: 12px; color: var(--muted); }
+  .progress-section { margin-top: 28px; }
+  .prog-row { margin-bottom: 16px; }
+  .prog-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+  .prog-track { height: 8px; background: var(--card2); border-radius: 4px; overflow: hidden; }
+  .prog-fill { height: 100%; background: var(--green); border-radius: 4px; transition: width .6s ease; }
+
+  /* Analytics */
+  .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .donut-wrap { display: flex; justify-content: center; padding: 20px 0; }
+  svg.donut circle { transition: stroke-dashoffset .6s ease; }
+
+  /* Products page */
+  .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .product-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; cursor: pointer; transition: border-color .15s;
+  }
+  .product-card:hover { border-color: var(--green); }
+  .product-mpn { font-family: monospace; font-size: 11px; color: var(--blue); margin-bottom: 6px; }
+  .product-name { font-size: 14px; font-weight: 600; margin-bottom: 8px; line-height: 1.4; }
+  .product-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag { font-size: 10px; background: var(--card2); color: var(--muted); padding: 2px 8px; border-radius: 10px; }
+
+  /* Reports page */
+  .report-card {
+    display: flex; align-items: center; gap: 16px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px;
+    cursor: pointer; transition: border-color .15s;
+  }
+  .report-card:hover { border-color: var(--green); }
+  .report-icon { font-size: 28px; }
+  .report-title { font-size: 14px; font-weight: 600; }
+  .report-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .dl-btn {
+    margin-left: auto; background: var(--green-bg); border: 1px solid var(--green-dim);
+    color: var(--green); padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer;
+  }
+  .dl-btn:hover { background: var(--green); color: #000; }
+
+  /* Settings */
+  .settings-row { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .settings-label { font-size: 13px; font-weight: 500; flex: 1; }
+  .settings-sub { font-size: 12px; color: var(--muted); }
+  .toggle { width: 40px; height: 22px; background: var(--green); border-radius: 11px; position: relative; cursor: pointer; flex-shrink: 0; }
+  .toggle::after { content:''; position:absolute; width:18px; height:18px; background:#000; border-radius:50%; top:2px; right:2px; transition:.2s; }
+  .toggle.off { background: var(--card2); }
+  .toggle.off::after { right: 20px; background: var(--muted); }
+
+  /* Notification toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--card);
+    border: 1px solid var(--green); border-radius: 10px; padding: 14px 18px;
+    font-size: 13px; display: flex; align-items: center; gap: 10px; z-index: 999;
+    transform: translateY(80px); opacity: 0; transition: all .3s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══════════════════════════════════════════════════════════════ -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div class="logo-text">APEX</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Navigation</div>
+    <div class="nav-item active" onclick="nav('dashboard')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2zm7 0h5v5H9zM2 9h5v5H2zm7 0h5v5H9z" opacity=".6"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="nav('pipeline')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 3a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm0 5a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1zm0 5a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H2a1 1 0 0 1-1-1z"/></svg>
+      Pipeline
+      <span class="badge" id="pipeline-badge">3</span>
+    </div>
+    <div class="nav-item" onclick="nav('products')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a2 2 0 0 1 2 2v.5h2.5A1.5 1.5 0 0 1 14 5v8.5A1.5 1.5 0 0 1 12.5 15h-9A1.5 1.5 0 0 1 2 13.5V5a1.5 1.5 0 0 1 1.5-1.5H6V3a2 2 0 0 1 2-2z"/></svg>
+      Products
+    </div>
+    <div class="nav-item" onclick="nav('analytics')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 11l3-4 3 2 3-6 3 5"/></svg>
+      Analytics
+    </div>
+    <div class="nav-item" onclick="nav('reports')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zM9 1v4h4M4 9h8M4 12h5"/></svg>
+      Reports
+      <span class="badge new">New</span>
+    </div>
+  </div>
+
+  <div class="sidebar-bottom">
+    <div class="sys-label">System</div>
+    <div class="nav-item" onclick="nav('settings')">
+      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/></svg>
+      Settings
+    </div>
+    <div class="user-card">
+      <div class="avatar">VC</div>
+      <div>
+        <div class="user-name">Vinit Chaurasia</div>
+        <div class="user-role">Team Apex</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══════════════════════════════════════════════════════════════════ -->
+<div class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="page-title" id="topbar-title">Dashboard</div>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--muted)"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/></svg>
+      <input id="search-input" placeholder="Search products…" oninput="filterProducts(this.value)">
+      <span class="kbd">⌘F</span>
+    </div>
+    <div class="notif-btn"><span>🔔</span><div class="notif-dot"></div></div>
+    <button class="run-btn" onclick="runPipeline()">▶ Run Pipeline</button>
+  </div>
+
+  <!-- ══ DASHBOARD PAGE ══ -->
+  <div class="content page active" id="page-dashboard">
+    <!-- Metric cards -->
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-label">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--muted)"><path d="M8 1a2 2 0 0 1 2 2v.5h2.5A1.5 1.5 0 0 1 14 5v8.5A1.5 1.5 0 0 1 12.5 15h-9A1.5 1.5 0 0 1 2 13.5V5a1.5 1.5 0 0 1 1.5-1.5H6V3a2 2 0 0 1 2-2z"/></svg>
+          Products Processed
+        </div>
+        <div class="metric-value">1,000</div>
+        <div class="metric-bar">
+          <span style="height:35%"></span><span style="height:45%"></span><span style="height:55%"></span>
+          <span style="height:60%"></span><span style="height:50%"></span><span style="height:75%"></span>
+          <span style="height:85%"></span><span style="height:90%"></span><span style="height:100%"></span>
+        </div>
+        <div class="metric-sub"><span class="up">↑ +1,000 this batch</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--muted)"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>
+          Enrichment Rate
+        </div>
+        <div class="metric-value">49.2%</div>
+        <div class="metric-bar">
+          <span style="height:30%"></span><span style="height:40%"></span><span style="height:35%"></span>
+          <span style="height:50%"></span><span style="height:45%"></span><span style="height:60%"></span>
+          <span style="height:55%"></span><span style="height:65%"></span><span style="height:70%"></span>
+        </div>
+        <div class="metric-sub"><span class="up">↑ 492 attributes extracted</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--muted)"><path d="M8 1a2 2 0 0 1 2 2v.5h2.5A1.5 1.5 0 0 1 14 5v8.5A1.5 1.5 0 0 1 12.5 15h-9A1.5 1.5 0 0 1 2 13.5V5a1.5 1.5 0 0 1 1.5-1.5H6V3a2 2 0 0 1 2-2z"/></svg>
+          Brand Resolution
+        </div>
+        <div class="metric-value">100%</div>
+        <div class="metric-bar">
+          <span style="height:80%"></span><span style="height:85%"></span><span style="height:90%"></span>
+          <span style="height:92%"></span><span style="height:95%"></span><span style="height:98%"></span>
+          <span style="height:99%"></span><span style="height:100%"></span><span style="height:100%"></span>
+        </div>
+        <div class="metric-sub"><span class="up">↑ All brands resolved</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--muted)"><path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4z"/></svg>
+          Invoice Compliance
+        </div>
+        <div class="metric-value">100%</div>
+        <div class="metric-bar">
+          <span style="height:95%"></span><span style="height:97%"></span><span style="height:98%"></span>
+          <span style="height:99%"></span><span style="height:100%"></span><span style="height:100%"></span>
+          <span style="height:100%"></span><span style="height:100%"></span><span style="height:100%"></span>
+        </div>
+        <div class="metric-sub"><span class="up">↑ ≤40 chars, ALL CAPS</span></div>
+      </div>
+    </div>
+
+    <!-- Charts + SKU summary -->
+    <div class="charts-row">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Product Enrichment by Category</div>
+          <div class="filter-btn">All Categories ▾</div>
+        </div>
+        <div class="bar-chart" id="bar-chart">
+          <!-- JS renders bars -->
+        </div>
+        <div style="display:flex;gap:10px" id="bar-labels"></div>
+      </div>
+      <div class="card">
+        <div class="sku-big">1,000</div>
+        <div class="sku-sub">SKUs ENRICHED &nbsp; ↑ 44.6% classified to category</div>
+        <div class="sku-row">
+          <div class="sku-icon">✅</div>
+          <div>
+            <div class="sku-row-title">Brand Resolution</div>
+            <div style="font-size:11px;color:var(--muted)">100% RESOLVED</div>
+          </div>
+          <div class="sku-row-val">100%</div>
+        </div>
+        <div class="sku-row">
+          <div class="sku-icon">⚡</div>
+          <div>
+            <div class="sku-row-title">Attribute Extraction</div>
+            <div style="font-size:11px;color:var(--muted)">49.2% FILL RATE</div>
+          </div>
+          <div class="sku-row-val">49.2%</div>
+        </div>
+        <div class="sku-row">
+          <div class="sku-icon">📄</div>
+          <div>
+            <div class="sku-row-title">Invoice Compliance</div>
+            <div style="font-size:11px;color:var(--muted)">100% VALID</div>
+          </div>
+          <div class="sku-row-val">100%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table + Pipeline stages -->
+    <div class="table-row-main">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Product Enrichment Status</div>
+          <div class="filter-btn">All Products ▾</div>
+        </div>
+        <table id="products-table">
+          <thead>
+            <tr>
+              <th>MPN</th><th>Manufacturer</th><th>Brand</th><th>Department</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Pipeline Stages</div>
+        </div>
+        <div id="pipeline-stages"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PIPELINE PAGE ══ -->
+  <div class="content page" id="page-pipeline">
+    <div style="max-width:700px">
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title" style="margin-bottom:16px">Upload Dataset</div>
+        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+          <div class="upload-icon">📂</div>
+          <div class="upload-title">Drop CSV file here or click to browse</div>
+          <div class="upload-sub">Supports: CSV, XLSX · Max 50MB</div>
+          <input type="file" id="file-input" accept=".csv,.xlsx" style="display:none" onchange="handleFile(this)">
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="run-btn" style="flex:1;justify-content:center" onclick="startPipelineDemo()">▶ Run Enrichment</button>
+          <button class="dl-btn" onclick="toast('Using sample 200-row UniHack dataset')">Use Sample Dataset</button>
+        </div>
+      </div>
+      <div class="card" id="progress-card" style="display:none">
+        <div class="card-title" style="margin-bottom:16px">⚡ Pipeline Running…</div>
+        <div class="progress-section" id="progress-steps"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PRODUCTS PAGE ══ -->
+  <div class="content page" id="page-products">
+    <div class="products-grid" id="products-grid"></div>
+  </div>
+
+  <!-- ══ ANALYTICS PAGE ══ -->
+  <div class="content page" id="page-analytics">
+    <div class="analytics-grid">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">LOV Compliance</div>
+        <div class="donut-wrap">
+          <svg width="140" height="140" viewBox="0 0 140 140" class="donut">
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--card2)" stroke-width="16"/>
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--green)" stroke-width="16"
+              stroke-dasharray="339" stroke-dashoffset="34" stroke-linecap="round"
+              transform="rotate(-90 70 70)"/>
+            <text x="70" y="70" text-anchor="middle" dominant-baseline="central" fill="var(--green)" font-size="22" font-weight="700">90%</text>
+          </svg>
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--muted)">90% of attributes LOV-compliant</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">UOM Compliance</div>
+        <div class="donut-wrap">
+          <svg width="140" height="140" viewBox="0 0 140 140" class="donut">
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--card2)" stroke-width="16"/>
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--green)" stroke-width="16"
+              stroke-dasharray="339" stroke-dashoffset="17" stroke-linecap="round"
+              transform="rotate(-90 70 70)"/>
+            <text x="70" y="70" text-anchor="middle" dominant-baseline="central" fill="var(--green)" font-size="22" font-weight="700">95%</text>
+          </svg>
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--muted)">95% UOM abbreviation compliant</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">Cost Breakdown</div>
+        <div style="margin-top:8px">
+          <div class="stage-row"><div class="stage-name">Taxonomy</div><div class="stage-track"><div class="stage-fill" style="width:5%"></div></div><div class="stage-val">$0.10</div></div>
+          <div class="stage-row"><div class="stage-name">Attributes</div><div class="stage-track"><div class="stage-fill" style="width:25%"></div></div><div class="stage-val">$0.50</div></div>
+          <div class="stage-row"><div class="stage-name">Descriptions</div><div class="stage-track"><div class="stage-fill" style="width:20%"></div></div><div class="stage-val">$0.40</div></div>
+          <div class="stage-row"><div class="stage-name">Web Enrich</div><div class="stage-track"><div class="stage-fill" style="width:50%"></div></div><div class="stage-val">$1.00</div></div>
+          <div class="stage-row"><div class="stage-name">Local steps</div><div class="stage-track"><div class="stage-fill" style="width:0%"></div></div><div class="stage-val" style="color:var(--muted)">FREE</div></div>
+        </div>
+        <div style="margin-top:16px;padding:12px;background:var(--green-bg);border-radius:8px;text-align:center">
+          <div style="font-size:24px;font-weight:800;color:var(--green)">$2.00</div>
+          <div style="font-size:11px;color:var(--muted)">per 1,000 SKUs (vs $14 generic)</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px">Source Coverage</div>
+        <div class="donut-wrap">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--card2)" stroke-width="16"/>
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--green)" stroke-width="16"
+              stroke-dasharray="339" stroke-dashoffset="102" stroke-linecap="round"
+              transform="rotate(-90 70 70)"/>
+            <text x="70" y="70" text-anchor="middle" dominant-baseline="central" fill="var(--green)" font-size="22" font-weight="700">70%</text>
+          </svg>
+        </div>
+        <div style="text-align:center;font-size:12px;color:var(--muted)">70% records have source citations</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REPORTS PAGE ══ -->
+  <div class="content page" id="page-reports">
+    <div class="report-card" onclick="toast('Downloading 252-col Unilog CSV…')">
+      <div class="report-icon">📊</div>
+      <div>
+        <div class="report-title">Full Unilog Delivery CSV</div>
+        <div class="report-sub">252-column format · 1,000 rows · Approved records only</div>
+      </div>
+      <div class="dl-btn">↓ Download</div>
+    </div>
+    <div class="report-card" onclick="toast('Downloading Provenance JSON…')">
+      <div class="report-icon">🔍</div>
+      <div>
+        <div class="report-title">Provenance JSON</div>
+        <div class="report-sub">Field-level source tracing · evidence · confidence scores</div>
+      </div>
+      <div class="dl-btn">↓ Download</div>
+    </div>
+    <div class="report-card" onclick="toast('Downloading JSON-LD export…')">
+      <div class="report-icon">🌐</div>
+      <div>
+        <div class="report-title">JSON-LD Export</div>
+        <div class="report-sub">Schema.org Product · structured data · SEO-ready</div>
+      </div>
+      <div class="dl-btn">↓ Download</div>
+    </div>
+    <div class="report-card" onclick="toast('Opening evaluation report…')">
+      <div class="report-icon">📈</div>
+      <div>
+        <div class="report-title">Evaluation Report</div>
+        <div class="report-sub">200-row ground truth · field accuracy · LOV compliance scorecard</div>
+      </div>
+      <div class="dl-btn">↓ View</div>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS PAGE ══ -->
+  <div class="content page" id="page-settings">
+    <div class="card" style="max-width:600px">
+      <div class="card-title" style="margin-bottom:20px">Pipeline Settings</div>
+      <div class="settings-row">
+        <div><div class="settings-label">Web Enrichment</div><div class="settings-sub">Call Claude Sonnet for sparse records (&lt;3 attributes)</div></div>
+        <div class="toggle" onclick="this.classList.toggle('off')"></div>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">ChromaDB Indexing</div><div class="settings-sub">Auto-index approved records with MiniLM-L6-v2</div></div>
+        <div class="toggle" onclick="this.classList.toggle('off')"></div>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Human Review Queue</div><div class="settings-sub">Route low-confidence records for manual approval</div></div>
+        <div class="toggle" onclick="this.classList.toggle('off')"></div>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">API Key</div><div class="settings-sub">OpenRouter / Anthropic</div></div>
+        <input type="password" value="sk-or-v1-●●●●●●●●" style="background:var(--card2);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:12px;width:200px">
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-label">Confidence Threshold</div><div class="settings-sub">Auto-approve above this score</div></div>
+        <input type="range" min="0" max="1" step="0.05" value="0.8" style="width:140px">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✅ <span id="toast-msg"></span></div>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────────────────
+const categories = [
+  {label:'Industrial\nSupplies', count:406},
+  {label:'Lighting &\nElectrical', count:240},
+  {label:'Tools &\nEquipment', count:98},
+  {label:'Abrasives &\nPolishing', count:72},
+  {label:'Appliances &\nConsumer', count:68},
+  {label:'Fasteners &\nHardware', count:54},
+  {label:'Building\nMaterials', count:32},
+  {label:'Adhesives &\nSealants', count:18},
+  {label:'HVAC &\nClimate', count:12},
+];
+
+const pipelineStages = [
+  {name:'Ingested',   val:1000, pct:100},
+  {name:'Normalized', val:1000, pct:100},
+  {name:'Classified', val:446,  pct:44.6},
+  {name:'Enriched',   val:492,  pct:49.2},
+  {name:'Validated',  val:1000, pct:100},
+  {name:'Exported',   val:1000, pct:100},
+];
+
+const rows = [
+  {mpn:'DCB518ASTS06G', mfr:'Freud Inc',      brand:'Diablo®',      dept:'Abrasives',           status:'enriched'},
+  {mpn:'3MABR-7100075678', mfr:'3M',          brand:'Cubitron™ II', dept:'Abrasives',           status:'enriched'},
+  {mpn:'3MABR-7100045865', mfr:'3M',          brand:'Cubitron™ II', dept:'Abrasives',           status:'enriched'},
+  {mpn:'CPLG-38-BR',    mfr:'Mueller Industries', brand:'Mueller',  dept:'Plumbing',            status:'enriched'},
+  {mpn:'VLV-12-SS-NPT', mfr:'Watts Water',    brand:'Watts',        dept:'HVAC',               status:'review'},
+  {mpn:'RDCR-34-12-BR', mfr:'NIBCO',          brand:'NIBCO',        dept:'Plumbing',            status:'enriched'},
+  {mpn:'ELB-38-90-BR',  mfr:'Mueller Industries', brand:'Mueller',  dept:'Fittings',            status:'enriched'},
+  {mpn:'FILT-3M-PP-10', mfr:'3M',             brand:'3M',           dept:'Filtration',          status:'review'},
+  {mpn:'BOLT-HEX-14-20', mfr:'Fastenal',      brand:'Fastenal',     dept:'Fasteners',           status:'pending'},
+  {mpn:'TAPE-2IN-PTFE', mfr:'Dixon Valve',    brand:'Dixon',        dept:'Thread Seal',         status:'enriched'},
+];
+
+// ── RENDER DASHBOARD ────────────────────────────────────────────────────────
+function renderBarChart() {
+  const max = Math.max(...categories.map(c=>c.count));
+  const chart = document.getElementById('bar-chart');
+  const labels = document.getElementById('bar-labels');
+  chart.innerHTML = '';
+  labels.innerHTML = '';
+  categories.forEach((c,i) => {
+    const h = Math.round((c.count/max)*120);
+    const col = document.createElement('div');
+    col.className='bar-col';
+    col.innerHTML = `<div class="bar${i===0?' active':''}" style="height:${h}px" title="${c.label}: ${c.count}"></div>`;
+    chart.appendChild(col);
+    const lbl = document.createElement('div');
+    lbl.style.cssText='font-size:9px;color:var(--muted);text-align:center;flex:1;line-height:1.3;white-space:pre-line';
+    lbl.textContent=c.label;
+    labels.appendChild(lbl);
+  });
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = data.map(r=>`
+    <tr onclick="toast('Viewing: ${r.mpn}')">
+      <td class="mpn">${r.mpn}</td>
+      <td>${r.mfr}</td>
+      <td>${r.brand}</td>
+      <td><span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>${r.dept}</span></td>
+      <td><span class="status-pill status-${r.status}">${r.status.charAt(0).toUpperCase()+r.status.slice(1)}</span></td>
+    </tr>`).join('');
+}
+
+function renderStages() {
+  document.getElementById('pipeline-stages').innerHTML = pipelineStages.map(s=>`
+    <div class="stage-row">
+      <div class="stage-name">${s.name}</div>
+      <div class="stage-track"><div class="stage-fill" style="width:${s.pct}%"></div></div>
+      <div class="stage-val">${s.val.toLocaleString()}</div>
+    </div>`).join('');
+}
+
+function renderProducts() {
+  document.getElementById('products-grid').innerHTML = rows.map(r=>`
+    <div class="product-card" onclick="toast('Product: ${r.mpn}')">
+      <div class="product-mpn">${r.mpn}</div>
+      <div class="product-name">${r.mfr} — ${r.brand}</div>
+      <div class="product-meta">
+        <span class="tag">${r.dept}</span>
+        <span class="tag status-${r.status}" style="background:${r.status==='enriched'?'var(--green-bg)':r.status==='review'?'#2d1f00':'var(--card2)'};color:${r.status==='enriched'?'var(--green)':r.status==='review'?'var(--yellow)':'var(--muted)'}">${r.status}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+function nav(page) {
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('page-'+page).classList.add('active');
+  const titles = {dashboard:'Dashboard',pipeline:'Pipeline',products:'Products',analytics:'Analytics',reports:'Reports',settings:'Settings'};
+  document.getElementById('topbar-title').textContent = titles[page]||page;
+}
+
+// ── SEARCH ───────────────────────────────────────────────────────────────────
+function filterProducts(q) {
+  q = q.toLowerCase();
+  const filtered = rows.filter(r=>
+    r.mpn.toLowerCase().includes(q)||r.mfr.toLowerCase().includes(q)||
+    r.brand.toLowerCase().includes(q)||r.dept.toLowerCase().includes(q));
+  renderTable(filtered.length ? filtered : rows);
+}
+
+// ── PIPELINE DEMO ────────────────────────────────────────────────────────────
+function handleFile(input) {
+  if(input.files.length) toast('File loaded: '+input.files[0].name+' · Click Run Enrichment');
+}
+
+function startPipelineDemo() {
+  nav_direct('pipeline');
+  const card = document.getElementById('progress-card');
+  card.style.display='block';
+  const steps = [
+    {name:'Placeholder Filter',  time:200},
+    {name:'Brand Normalization', time:400},
+    {name:'UOM Normalization',   time:300},
+    {name:'Taxonomy Classify',   time:800},
+    {name:'Attribute Extract',   time:1200},
+    {name:'Description Build',   time:700},
+    {name:'LOV Validation',      time:300},
+    {name:'Conflict Detect',     time:200},
+  ];
+  const container = document.getElementById('progress-steps');
+  container.innerHTML = steps.map(s=>`
+    <div class="prog-row">
+      <div class="prog-label"><span>${s.name}</span><span id="pct-${s.name.replace(/ /g,'_')}">0%</span></div>
+      <div class="prog-track"><div class="prog-fill" id="bar-${s.name.replace(/ /g,'_')}" style="width:0%"></div></div>
+    </div>`).join('');
+  let delay = 0;
+  steps.forEach(s => {
+    const id = s.name.replace(/ /g,'_');
+    setTimeout(()=>{
+      let p=0;
+      const iv = setInterval(()=>{
+        p = Math.min(p+4, 100);
+        document.getElementById('bar-'+id).style.width=p+'%';
+        document.getElementById('pct-'+id).textContent=p+'%';
+        if(p>=100){clearInterval(iv);}
+      },20);
+    }, delay);
+    delay += s.time;
+  });
+  setTimeout(()=>toast('✅ Pipeline complete — 1,000 SKUs enriched'), delay+400);
+}
+
+function nav_direct(page) {
+  document.querySelectorAll('.nav-item').forEach((el,i)=>{
+    el.classList.remove('active');
+    const pages=['dashboard','pipeline','products','analytics','reports','settings'];
+    if(pages[i]===page) el.classList.add('active');
+  });
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('topbar-title').textContent=page.charAt(0).toUpperCase()+page.slice(1);
+}
+
+function runPipeline() {
+  nav_direct('pipeline');
+  setTimeout(startPipelineDemo, 300);
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+renderBarChart();
+renderTable(rows);
+renderStages();
+renderProducts();
+</script>
+</body>
+</html>

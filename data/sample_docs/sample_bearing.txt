@@ -1,0 +1,56 @@
+SKF Deep Groove Ball Bearing — Product Data Sheet
+
+Product: 6205-2Z
+Manufacturer: SKF Group
+Category: Rolling element bearings
+
+DIMENSIONS
+Bore diameter (d): 25 mm
+Outer diameter (D): 52 mm  
+Width (B): 15 mm
+Corner radius (r min): 1 mm
+
+LOAD RATINGS
+Dynamic load rating (C): 14.0 kN
+Static load rating (C0): 7.80 kN
+Fatigue load limit (Pu): 0.335 kN
+
+SPEEDS
+Reference speed: 14,000 rpm
+Limiting speed (grease): 13,000 rpm
+Limiting speed (oil): 17,000 rpm
+
+OPERATING CONDITIONS
+Temperature range: -40°C to +120°C
+(momentarily up to +150°C)
+
+DESIGN FEATURES
+Sealing type: Double shielded (2Z)
+Cage material: Steel (pressed)
+Lubrication: Pre-lubricated with grease
+
+MATERIALS
+Inner/outer ring: Chrome steel (SAE 52100 / 100Cr6)
+Rolling elements: Chrome steel
+Shields: Steel
+
+SPECIFICATIONS
+Weight: 0.127 kg
+Noise category: E (low noise variant available: C2E, C3)
+
+STANDARDS COMPLIANCE
+ISO 15:2017 (Radial internal clearance)
+DIN 625-1
+ABEC-3 / P6 tolerance class
+
+PART NUMBER VARIANTS
+6205 — Open (no shields)
+6205-Z — Single shielded
+6205-2Z — Double shielded (this product)
+6205-RS1 — Single sealed, low friction
+6205-2RS1 — Double sealed, low friction
+
+APPLICATION NOTE
+Suitable for high-speed electric motors, pumps, gearboxes,
+and general industrial machinery. Not suitable for heavy axial
+loads without thrust bearing supplement.

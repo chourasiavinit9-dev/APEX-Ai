@@ -1,0 +1,37 @@
+{
+  "$schema": "product_intelligence_v1",
+  "product_type": "sensor",
+  "display_name": "Sensor / Transducer",
+  "required_fields": ["sensor_type", "measurement_range_min", "measurement_range_max", "output_signal"],
+  "attributes": {
+    "sensor_type": {
+      "type": "string",
+      "unit": null,
+      "examples": ["Pressure sensor", "Temperature sensor", "Flow sensor", "Level sensor", "Proximity sensor", "Vibration sensor", "pH sensor"]
+    },
+    "measurement_range_min": { "type": "float", "unit": null },
+    "measurement_range_max": { "type": "float", "unit": null },
+    "measurement_unit": { "type": "string", "unit": null, "examples": ["bar", "°C", "m³/h", "mm", "Hz", "pH"] },
+    "accuracy": { "type": "float", "unit": "%FS", "range": [0.001, 10] },
+    "output_signal": {
+      "type": "string",
+      "unit": null,
+      "examples": ["4-20mA", "0-10V", "0-5V", "HART", "Modbus RTU", "IO-Link", "NPN", "PNP", "Switch"]
+    },
+    "supply_voltage_min": { "type": "float", "unit": "V", "range": [1, 600] },
+    "supply_voltage_max": { "type": "float", "unit": "V", "range": [1, 600] },
+    "protection_class": {
+      "type": "string",
+      "unit": null,
+      "examples": ["IP65", "IP67", "IP68", "IP69K", "NEMA 4", "NEMA 4X"]
+    },
+    "process_connection": { "type": "string", "unit": null, "examples": ["G1/4\"", "G1/2\"", "NPT 1/4\"", "NPT 1/2\"", "Flanged DN25"] },
+    "operating_temp_min": { "type": "float", "unit": "°C" },
+    "operating_temp_max": { "type": "float", "unit": "°C" },
+    "response_time": { "type": "float", "unit": "ms" },
+    "material_wetted": { "type": "string", "unit": null },
+    "certifications": { "type": "array", "unit": null },
+    "compatible_standards": { "type": "array", "unit": null },
+    "weight": { "type": "float", "unit": "kg" }
+  }
+}

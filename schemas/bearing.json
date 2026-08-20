@@ -1,0 +1,88 @@
+{
+  "$schema": "product_intelligence_v1",
+  "product_type": "bearing",
+  "display_name": "Bearing",
+  "required_fields": ["material", "bore_diameter", "outer_diameter", "width"],
+  "attributes": {
+    "material": {
+      "type": "string",
+      "unit": null,
+      "description": "Primary material (e.g. Chrome steel, Stainless steel, Ceramic)",
+      "examples": ["Chrome steel", "Stainless steel", "Hybrid ceramic"]
+    },
+    "bore_diameter": {
+      "type": "float",
+      "unit": "mm",
+      "description": "Inner bore diameter",
+      "range": [1, 2000]
+    },
+    "outer_diameter": {
+      "type": "float",
+      "unit": "mm",
+      "description": "Outer ring diameter",
+      "range": [3, 2500]
+    },
+    "width": {
+      "type": "float",
+      "unit": "mm",
+      "description": "Bearing width/thickness",
+      "range": [1, 500]
+    },
+    "dynamic_load_rating": {
+      "type": "float",
+      "unit": "kN",
+      "description": "Dynamic load rating C",
+      "range": [0.01, 50000]
+    },
+    "static_load_rating": {
+      "type": "float",
+      "unit": "kN",
+      "description": "Static load rating C0",
+      "range": [0.01, 50000]
+    },
+    "operating_temp_min": {
+      "type": "float",
+      "unit": "°C",
+      "range": [-200, 0]
+    },
+    "operating_temp_max": {
+      "type": "float",
+      "unit": "°C",
+      "range": [60, 600]
+    },
+    "speed_rating": {
+      "type": "float",
+      "unit": "rpm",
+      "range": [1, 500000]
+    },
+    "lubrication": {
+      "type": "string",
+      "unit": null,
+      "examples": ["Grease", "Oil", "Solid lubricant", "Dry"]
+    },
+    "sealing": {
+      "type": "string",
+      "unit": null,
+      "examples": ["Open", "Shielded (Z)", "Sealed (RS)", "Double shielded (2Z)", "Double sealed (2RS)"]
+    },
+    "bearing_type": {
+      "type": "string",
+      "unit": null,
+      "examples": ["Deep groove ball", "Angular contact", "Tapered roller", "Cylindrical roller", "Thrust ball", "Needle roller"]
+    },
+    "certifications": {
+      "type": "array",
+      "unit": null
+    },
+    "compatible_standards": {
+      "type": "array",
+      "unit": null,
+      "examples": ["ISO 15:2017", "DIN 625", "ABEC-5", "P5"]
+    },
+    "weight": {
+      "type": "float",
+      "unit": "kg",
+      "range": [0.001, 10000]
+    }
+  }
+}

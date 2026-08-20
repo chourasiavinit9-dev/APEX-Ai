@@ -1,0 +1,192 @@
+# .github/workflows/ci.yml
+# LEAP CI/CD Pipeline — runs on every push and pull request
+
+name: LEAP CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: "3.9"
+
+jobs:
+  # ── Job 1: Lint & Format ────────────────────────────────────────────────────
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install lint tools
+        run: pip install flake8 black isort
+
+      - name: Check code style (flake8)
+        run: |
+          flake8 core/ loaders/ generators/ validators/ security/ \
+            --max-line-length=120 \
+            --extend-ignore=E203,W503 \
+            --exclude=__pycache__,*.pyc
+
+      - name: Check formatting (black)
+        run: black --check --line-length=120 core/ loaders/ generators/ validators/ security/
+
+      - name: Check import order (isort)
+        run: isort --check-only --profile black core/ loaders/ generators/ validators/ security/
+
+  # ── Job 2: Test Suite ───────────────────────────────────────────────────────
+  test:
+    name: Test Suite (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-cov
+
+      - name: Create required directories
+        run: mkdir -p data/unihack results data/chroma_db
+
+      - name: Run test suite
+        # No API key needed — all 194 tests run locally
+        run: |
+          python -m pytest tests/ -v \
+            --tb=short \
+            --cov=core --cov=loaders --cov=generators --cov=validators \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            -x
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.9'
+        with:
+          file: coverage.xml
+          fail_ci_if_error: false
+
+  # ── Job 3: Security Scan ────────────────────────────────────────────────────
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install security tools
+        run: pip install bandit safety
+
+      - name: Run bandit static analysis
+        run: |
+          bandit -r core/ loaders/ generators/ validators/ security/ \
+            -ll \
+            --exclude tests/ \
+            -f json -o bandit-report.json || true
+          bandit -r core/ loaders/ generators/ validators/ security/ -ll
+
+      - name: Check dependency vulnerabilities
+        run: safety check -r requirements.txt --continue-on-error
+
+      - name: Check for hardcoded secrets
+        run: |
+          # Ensure no API keys are hardcoded in source
+          if grep -rn "sk-ant-\|ANTHROPIC_API_KEY\s*=\s*['\"][a-z]" \
+               core/ loaders/ generators/ validators/ security/ ui/; then
+            echo "❌ Hardcoded API key detected!"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets found"
+
+  # ── Job 4: Build Check ──────────────────────────────────────────────────────
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create required directories
+        run: mkdir -p data/unihack results data/chroma_db
+
+      - name: Verify all modules import cleanly
+        run: |
+          python3 -c "
+          import core
+          from core.catalog_db import init_db, create_job
+          from core.provenance import FieldProvenance, RecordProvenance
+          from core.conflict_detector import detect_conflicts
+          from core.duplicate_finder import normalize_mpn
+          from loaders.data_loader import is_placeholder
+          from loaders.uom_normaliser import normalise_uom, decimal_to_fraction
+          from loaders.unihack_pipeline import _parse_desc_heuristic, _extract_item_type
+          from generators.description_builder import _fallback_descriptions
+          from validators.output_validator import validate_output
+          from security.middleware import create_token, verify_token, hash_password, verify_password
+          init_db()
+          print('✅ All modules import and initialize correctly')
+          "
+
+      - name: Syntax check Streamlit app
+        run: python3 -c "import ast; ast.parse(open('ui/unihack_app.py').read()); print('✅ Dashboard syntax OK')"
+
+      - name: Run evaluate demo
+        run: python3 evaluate.py --demo
+
+  # ── Job 5: Docker Build (main branch only) ──────────────────────────────────
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t leap-pipeline:${{ github.sha }} .
+          docker build -t leap-pipeline:latest .
+
+      - name: Smoke test Docker image
+        run: |
+          docker run --rm leap-pipeline:latest \
+            python3 -c "from core.catalog_db import init_db; init_db(); print('✅ Docker OK')"

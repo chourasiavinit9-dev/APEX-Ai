@@ -1,0 +1,51 @@
+SAMSON Controls — Type 3531 Globe Control Valve
+Technical Data Sheet | Revision 4.2
+
+PRODUCT OVERVIEW
+Type 3531 is a pneumatically actuated single-seated globe control valve
+for industrial process control applications.
+
+VALVE BODY
+Type: Globe valve (single-seated)
+Nominal size: DN 25 to DN 150
+Body rating: PN 16 to PN 40
+Connection type: Flanged (EN 1092-1 / ASME B16.5)
+Body material: 1.0619 (WCB) or 1.4408 (CF8M stainless steel)
+
+PERFORMANCE DATA
+Pressure rating: 40 bar (PN 40)
+Differential pressure max: 32 bar (at shutoff)
+Operating temperature: -10°C to +220°C (standard packing)
+  Extended range: -60°C to +450°C (special packing available)
+Leakage class: EN 60534-4 Class IV (standard) / Class VI (soft seat)
+
+FLOW COEFFICIENTS (Kv values)
+DN 25: Kv = 6.3
+DN 40: Kv = 16
+DN 50: Kv = 25
+DN 80: Kv = 63
+DN 100: Kv = 100
+DN 150: Kv = 250
+
+ACTUATOR (Type 3271)
+Actuation: Pneumatic spring-return diaphragm
+Air supply: 1.4 to 2.8 bar (fail-safe closed) or 3.0 to 6.0 bar
+Positioner: SAMSON Type 3730 HART or EDP (optional)
+
+TRIM MATERIALS
+Plug: 1.4006 (410 stainless) or 2.4610 (Hastelloy C-276)
+Seat: 1.4006 hardened / Stellite-faced
+Packing: PTFE V-ring (standard) / Graphite (high-temperature)
+
+WEIGHT (approximate)
+DN 50 / PN 40: 18 kg (valve body only, without actuator)
+
+CERTIFICATIONS
+CE marking (PED 2014/68/EU)
+SIL 2 capable (IEC 62061 / EN ISO 13849)
+ATEX Zone 1 & 2 (with appropriate actuator)
+
+STANDARDS
+IEC 60534-1 (Industrial Process Control Valves)
+EN 12266-1 (Pressure testing)
+DIN 3840 (Face-to-face dimensions)

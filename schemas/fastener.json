@@ -1,0 +1,22 @@
+{
+  "$schema": "product_intelligence_v1",
+  "product_type": "fastener",
+  "display_name": "Fastener",
+  "required_fields": ["fastener_type", "thread_size", "material", "grade"],
+  "attributes": {
+    "fastener_type": { "type": "string", "unit": null, "examples": ["Hex bolt", "Socket head cap screw", "Stud bolt", "Nut", "Washer", "Anchor bolt", "Eye bolt"] },
+    "thread_size": { "type": "string", "unit": null, "examples": ["M6", "M8", "M10", "M12", "M16", "M20", "M24", "1/4\"", "3/8\"", "1/2\""] },
+    "thread_pitch": { "type": "float", "unit": "mm" },
+    "length": { "type": "float", "unit": "mm", "range": [1, 3000] },
+    "material": { "type": "string", "unit": null, "examples": ["Carbon steel", "Alloy steel", "Stainless steel A2", "Stainless steel A4", "Titanium", "Brass"] },
+    "grade": { "type": "string", "unit": null, "examples": ["Grade 4.6", "Grade 8.8", "Grade 10.9", "Grade 12.9", "A2-70", "A4-80"] },
+    "tensile_strength": { "type": "float", "unit": "MPa", "range": [100, 2000] },
+    "proof_load": { "type": "float", "unit": "MPa", "range": [50, 1500] },
+    "coating": { "type": "string", "unit": null, "examples": ["Zinc plated", "Hot-dip galvanized", "Dacromet", "Geomet", "Black oxide", "Plain"] },
+    "head_type": { "type": "string", "unit": null, "examples": ["Hex", "Socket", "Countersunk", "Pan", "Flange", "Truss"] },
+    "drive_type": { "type": "string", "unit": null, "examples": ["Internal hex", "Torx", "Phillips", "Slotted", "External hex"] },
+    "standards": { "type": "array", "unit": null, "examples": ["DIN 933", "ISO 4014", "ASTM A193", "ASTM A307"] },
+    "certifications": { "type": "array", "unit": null },
+    "weight_per_100": { "type": "float", "unit": "kg" }
+  }
+}
