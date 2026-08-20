@@ -93,10 +93,28 @@ CREATE TABLE IF NOT EXISTS reviews (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS asset_sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sku TEXT NOT NULL,
+    asset_type TEXT NOT NULL,
+    url TEXT,
+    official_domain TEXT,
+    status TEXT NOT NULL,
+    evidence TEXT,
+    resource_url TEXT,
+    rejection_reason TEXT,
+    source_coverage_score REAL DEFAULT 0.0,
+    needs_human_review INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_products_job ON products(job_id);
 CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
 CREATE INDEX IF NOT EXISTS idx_products_review ON products(needs_review, priority_score DESC);
 CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id);
+CREATE INDEX IF NOT EXISTS idx_asset_sources_sku ON asset_sources(sku);
+CREATE INDEX IF NOT EXISTS idx_asset_sources_status ON asset_sources(status);
+CREATE INDEX IF NOT EXISTS idx_asset_sources_review ON asset_sources(needs_human_review);
 """
 
 
@@ -379,7 +397,103 @@ def compute_global_metrics() -> dict:
     }
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Helpers ────────────────────────────────────────────────────────────────────────────────
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+# ── Asset Sources ─────────────────────────────────────────────────────────────────────
+
+def upsert_product_sources(sku: str, product_sources) -> None:
+    """
+    Persist a ProductSources object to the asset_sources table.
+    Replaces existing records for the same SKU.
+
+    Args:
+        sku: The product MPN/SKU identifier.
+        product_sources: schemas.asset.ProductSources instance.
+    """
+    now = _now()
+    coverage = product_sources.source_coverage_score
+    review = 1 if product_sources.needs_human_review else 0
+
+    assets = [
+        product_sources.product_page,
+        product_sources.datasheet,
+        *product_sources.images,
+    ]
+
+    with get_conn() as conn:
+        # Remove existing entries for this SKU before re-inserting
+        conn.execute("DELETE FROM asset_sources WHERE sku = ?", (sku,))
+        for asset in assets:
+            conn.execute(
+                """
+                INSERT INTO asset_sources
+                    (sku, asset_type, url, official_domain, status, evidence,
+                     resource_url, rejection_reason, source_coverage_score,
+                     needs_human_review, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    sku,
+                    asset.asset_type,
+                    asset.url,
+                    asset.official_domain,
+                    asset.status.value,
+                    asset.evidence,
+                    asset.resource_url,
+                    asset.rejection_reason,
+                    coverage,
+                    review,
+                    now,
+                ),
+            )
+
+
+def get_product_sources(sku: str) -> List[Dict[str, Any]]:
+    """
+    Retrieve all asset_sources rows for a given SKU.
+
+    Returns:
+        List of dicts with asset metadata.
+    """
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM asset_sources WHERE sku = ? ORDER BY id",
+            (sku,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_asset_coverage_stats() -> Dict[str, Any]:
+    """
+    Aggregate source coverage stats for Analytics page.
+
+    Returns:
+        Dict with verified counts, missing assets, and avg coverage.
+    """
+    with get_conn() as conn:
+        total_skus = conn.execute(
+            "SELECT COUNT(DISTINCT sku) FROM asset_sources"
+        ).fetchone()[0]
+        verified_pages = conn.execute(
+            "SELECT COUNT(*) FROM asset_sources WHERE asset_type='product_page' AND status='verified'"
+        ).fetchone()[0]
+        verified_datasheets = conn.execute(
+            "SELECT COUNT(*) FROM asset_sources WHERE asset_type='datasheet' AND status='verified'"
+        ).fetchone()[0]
+        missing_review = conn.execute(
+            "SELECT COUNT(DISTINCT sku) FROM asset_sources WHERE needs_human_review=1"
+        ).fetchone()[0]
+        avg_coverage = conn.execute(
+            "SELECT AVG(source_coverage_score) FROM asset_sources"
+        ).fetchone()[0] or 0.0
+    return {
+        "total_skus_with_assets": total_skus,
+        "verified_product_pages": verified_pages,
+        "verified_datasheets": verified_datasheets,
+        "missing_needs_review": missing_review,
+        "avg_source_coverage": round(float(avg_coverage), 3),
+    }

@@ -108,11 +108,59 @@ def enrich_row(
     record["sku"] = row.get("SKU", row.get("Mfg_Part_Num", ""))
     record["_pipeline_steps"].append("description_build")
 
-    # Step 7 — Validation
+    # Step 7 — Digital Asset & Source Verification (local-first, free)
+    try:
+        from core.digital_assets import collect_product_assets
+        from core.source_registry import get_approved_domains
+        from core.catalog_db import upsert_product_sources
+
+        manufacturer = record.get("manufacturer_name", "")
+        brand = record.get("brand_name", "")
+        approved_domains = get_approved_domains(manufacturer, brand)
+
+        # Gather candidate URLs from enrichment fields — never fabricate
+        candidate_urls = []
+        for field in ("source_url", "resource_url", "product_url", "datasheet_url", "image_url"):
+            val = record.get(field) or record.get("_raw", {}).get(field)
+            if val and isinstance(val, str) and val.strip():
+                candidate_urls.append(val.strip())
+        # Also check web_enrichment source URLs if present
+        web_sources = record.get("_web_sources", [])
+        if isinstance(web_sources, list):
+            candidate_urls.extend(web_sources)
+
+        product_sources = collect_product_assets(
+            candidate_urls=candidate_urls,
+            approved_manufacturer_domains=approved_domains,
+            resource_url=f"UniCat_Manufacturer_List → {manufacturer}",
+        )
+        record["sources"] = product_sources.to_export_dict()
+        record["_product_sources"] = product_sources  # For DB persistence
+
+        # Persist to asset_sources table
+        sku = record.get("sku") or record.get("mpn") or ""
+        if sku:
+            try:
+                upsert_product_sources(sku, product_sources)
+            except Exception:
+                pass  # Non-fatal: DB may not be initialized yet
+
+        # Merge source needs_review into overall flag
+        if product_sources.needs_human_review:
+            record["needs_human_review"] = True
+
+        record["_pipeline_steps"].append("source_verify")
+
+    except Exception:
+        # Non-fatal: source verification is additive; pipeline continues
+        record["sources"] = {}
+
+    # Step 8 — Validation
     report = validate_output(record)
     record["validation"] = _validation_to_dict(report)
     record["confidence"] = report.overall_score
-    record["needs_human_review"] = report.needs_human_review
+    if not record.get("needs_human_review"):
+        record["needs_human_review"] = report.needs_human_review
     record["_pipeline_steps"].append("validate")
 
     return record

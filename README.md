@@ -3,7 +3,7 @@
 **UniHack 2026 submission by Team APEX**
 
 [![CI](https://github.com/chourasiavinit9-dev/APEX-Ai/actions/workflows/ci.yml/badge.svg)](https://github.com/chourasiavinit9-dev/APEX-Ai/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-194%20passed-22c55e)](tests/)
+[![Tests](https://img.shields.io/badge/tests-264%20passed-22c55e)](tests/)
 [![Python](https://img.shields.io/badge/python-3.9%2B-3b82f6)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Cost](https://img.shields.io/badge/cost-%242%2F1K%20rows-6366f1)](COST_MODEL.md)
@@ -228,3 +228,59 @@ Run: `python3 evaluate.py --demo` to see the evaluation framework in action.
 | 100,000 rows | ~$200.00 |
 
 No cloud vector database subscription required. No GPU required. Runs on a laptop.
+
+---
+
+## 🔍 Digital Asset & Official Source Verification
+
+APEX includes a built-in **Digital Asset and Source Verification** module that enforces strict official-only sourcing rules per product record.
+
+### What is verified per SKU:
+
+| Asset | Rule |
+|---|---|
+| **Official Product Page URL** | Must be on approved manufacturer domain |
+| **Official Datasheet PDF URL** | Must be on approved manufacturer domain or CDN |
+| **Official Image URL** | Must be on approved manufacturer domain; max 3 per product |
+
+### Source Coverage Scoring:
+
+| Score | What it means |
+|---|---|
+| **1.0** | Product page + datasheet + image — fully sourced |
+| **0.7** | Product page + datasheet (no image) — near-complete |
+| **0.4** | At least one official source |
+| **0.0** | No verified official source — queued for human review |
+
+### Blocked domains (never accepted as verified sources):
+
+```text
+amazon.com, ebay.com, grainger.com, zoro.com, homedepot.com,
+walmmart.com, alibaba.com, aliexpress.com, fastenal.com, mcmaster.com
+```
+
+### Export format:
+
+```json
+{
+  "sources": {
+    "product_page": { "url": "https://muellerindustries.com/product/CPLG-38-BR", "status": "verified" },
+    "datasheet":     { "url": "https://muellerindustries.com/datasheets/CPLG-38-BR.pdf", "status": "verified" },
+    "images": [],
+    "source_coverage_score": 0.7,
+    "needs_human_review": true
+  }
+}
+```
+
+### Key files:
+
+| File | Purpose |
+|---|---|
+| `schemas/asset.py` | Pydantic data models (`DigitalAsset`, `ProductSources`, `SourceStatus`) |
+| `core/source_verifier.py` | URL verification engine (blocklist + manufacturer domain matching) |
+| `core/digital_assets.py` | Asset classification and coverage scoring |
+| `core/source_registry.py` | Approved manufacturer domain registry |
+| `core/catalog_db.py` | `asset_sources` SQLite table + persistence functions |
+| `tests/test_source_verifier.py` | 39 unit tests covering all URL verification paths |
+| `tests/test_digital_assets.py` | 31 unit tests for classification, coverage, and export |
