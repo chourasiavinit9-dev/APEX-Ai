@@ -67,3 +67,14 @@ bandit-report.json
 # Logs
 *.log
 logs/
+
+# Local reference & prompt documents (local only)
+TEAM_PROMPT.md
+UNIHACK_GAP_ANALYSIS.md
+JUDGE_EVALUATION.md
+CODE_QUALITY.md
+REQUIREMENTS.md
+score_check.py
+ui/app.py
+.idx/
+
