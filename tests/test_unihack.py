@@ -526,3 +526,94 @@ def test_load_connection_type_map_has_fnpt():
     assert mapping["fnpt"] == "FNPT", (
         f"Expected mapping['fnpt']='FNPT', got {mapping['fnpt']!r}"
     )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Ground Truth Auditor Tests
+# ══════════════════════════════════════════════════════════════════════════════
+
+import pandas as pd
+
+from validators.ground_truth_auditor import (
+    audit_ground_truth,
+    detect_brand_manufacturer_mismatch,
+    generate_audit_report,
+)
+
+
+def test_detect_rheem_frigidaire_mismatch():
+    reason = detect_brand_manufacturer_mismatch(
+        "Rheem Manufacturing",
+        "FRIGIDAIRE®",
+    )
+
+    assert reason is not None
+    assert "OEM/white-label" in reason
+
+
+def test_detect_no_mismatch_same_brand():
+    reason = detect_brand_manufacturer_mismatch(
+        "Mueller Industries",
+        "Mueller Industries®",
+    )
+
+    assert reason is None
+
+
+def test_generate_audit_report_has_total_rows():
+    report = generate_audit_report(
+        {
+            "total_rows": 200,
+            "blank_unspsc_rows": [1, 45, 112],
+            "blank_country_of_origin_rows": [2, 3],
+            "brand_manufacturer_mismatches": [],
+            "completeness_by_field": {},
+        }
+    )
+
+    assert "Total rows: 200" in report
+    assert "Blank UNSPSC codes: 3 rows" in report
+
+
+def test_audit_ground_truth_returns_dict():
+    dataframe = pd.DataFrame(
+        {
+            "UNSPSC": ["12345678", None],
+            "Country of Origin": ["United States", "Canada"],
+            "Manufacturer": ["Acme Inc", "Example Co"],
+            "Brand": ["Acme", "Example"],
+        }
+    )
+
+    audit = audit_ground_truth(dataframe)
+
+    assert isinstance(audit, dict)
+    assert audit["total_rows"] == 2
+    assert "completeness_by_field" in audit
+
+
+def test_audit_ground_truth_blank_unspsc_detected():
+    dataframe = pd.DataFrame(
+        {
+            "UNSPSC": ["12345678", None, ""],
+            "Country of Origin": ["United States"] * 3,
+        }
+    )
+
+    audit = audit_ground_truth(dataframe)
+
+    assert audit["blank_unspsc_rows"] == [1, 2]
+
+
+def test_audit_completeness_by_field_is_percentage():
+    dataframe = pd.DataFrame(
+        {
+            "UNSPSC": ["12345678", None, "87654321"],
+            "Country of Origin": ["United States", "Canada", "Mexico"],
+        }
+    )
+
+    audit = audit_ground_truth(dataframe)
+
+    assert audit["completeness_by_field"]["UNSPSC"] == 66.67
+    assert audit["completeness_by_field"]["Country of Origin"] == 100.0
