@@ -5,27 +5,30 @@ Fix 1 (CRITICAL): Async batch processing with semaphore concurrency limiter.
 Fix 5: Auto web-search when fewer than 3 attributes extracted.
 All thresholds from core/constants.py.
 """
+
 from __future__ import annotations
+
 import asyncio
-import time
 from pathlib import Path
 
 import anthropic
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.table import Table
 
 from .constants import (
     CONFIDENCE_WEB_SEARCH_THRESHOLD,
+    DEDUP_HARD_THRESHOLD,
+    DEDUP_SOFT_THRESHOLD,
     SUPPORTED_EXTENSIONS,
 )
-from .ingest import ingest_file, IngestedDocument
-from .extractor import extract, classify_product_type, build_client, normalize_units
-from .enricher import enrich, index_product
+from .duplicate_detector import is_duplicate
+from .enricher import enrich
+from .exporter import export_batch_csv, export_batch_json, export_batch_jsonld
+from .extractor import build_client, classify_product_type, extract, normalize_units
+from .ingest import IngestedDocument, ingest_file
+from .knowledge_graph import graph_stats, index_product_in_graph, load_graph, save_graph
 from .validator import validate
-from .exporter import export_batch_json, export_batch_csv, export_batch_jsonld
-from .web_enricher import web_enrich, apply_web_enrichment_to_product
-from .knowledge_graph import load_graph, save_graph, index_product_in_graph, graph_stats
+from .web_enricher import apply_web_enrichment_to_product, web_enrich
 
 console = Console()
 ASYNC_CONCURRENCY = 10  # max parallel Claude calls
@@ -37,13 +40,66 @@ def run_single(
     client: anthropic.Anthropic | None = None,
     enrich_enabled: bool = True,
 ) -> dict:
-    """Full APEX pipeline for a single document (sync entry point)."""
+    """Full APEX pipeline for a single document (sync entry point).
+
+    Step order (UniHack guide):
+      1. Ingest (done by caller via ingest_file)
+      2. De-duplication  ← is_duplicate() called here
+      3. Taxonomy        ← classify_product_type()
+      4. Attribute extraction ← extract()
+      5. Enrichment      ← enrich() + web_enrich()
+      6. Cleansing / unit normalisation ← normalize_units()
+      7. Description building (in extract/build_descriptions)
+      8. Digital assets  (collected by collect_product_assets)
+    """
+    if client is None:
+        client = build_client()
+
+    # ── Step 2: De-duplication ────────────────────────────────────────────────
+    # Build a minimal stub so is_duplicate can embed the raw document text.
+    raw_stub = {
+        "name": getattr(doc, "title", "") or "",
+        "product_type": product_type or "",
+        "attributes": {},
+    }
+    is_dup, matched, sim_score = is_duplicate(raw_stub, threshold=DEDUP_HARD_THRESHOLD)
+    if is_dup:
+        console.log(
+            f"[yellow]⚠ Duplicate skipped[/] — similarity {sim_score:.3f} "
+            f"≥ {DEDUP_HARD_THRESHOLD} vs {matched.get('product_id', 'unknown')}"
+        )
+        # Return a minimal result so batch processing can still log it
+        return {
+            "name": raw_stub["name"],
+            "product_type": product_type or "",
+            "attributes": {},
+            "provenance": {"confidence": 0.0},
+            "validation": {
+                "issues": [f"Skipped — hard duplicate (similarity={sim_score:.3f})"],
+                "passed_rules": False,
+                "needs_human_review": False,
+                "duplicate_status": "hard_duplicate",
+                "duplicate_of": matched.get("product_id") if matched else None,
+                "duplicate_similarity": sim_score,
+            },
+        }
+
     if client is None:
         client = build_client()
     if not product_type:
         product_type = classify_product_type(doc, client=client)
     product = extract(doc, product_type, client=client)
     product = normalize_units(product)
+
+    # ── Soft-duplicate flag (0.85 ≤ sim < 0.95) ──────────────────────────────
+    if sim_score >= DEDUP_SOFT_THRESHOLD:
+        val = product.setdefault("validation", {})
+        val["possible_duplicate"] = True
+        val["duplicate_similarity"] = sim_score
+        issues = val.setdefault("issues", [])
+        issues.append(f"Possible duplicate detected (similarity={sim_score:.3f}) " "— human review recommended")
+        val["needs_human_review"] = True
+
     if enrich_enabled:
         product = enrich(product)
     product = _maybe_web_enrich(product, enrich_enabled, client)
@@ -80,12 +136,8 @@ async def _async_batch(
     """Process all files concurrently, up to ASYNC_CONCURRENCY at once."""
     semaphore = asyncio.Semaphore(ASYNC_CONCURRENCY)
     client = build_client()
-    tasks = [
-        _async_process_one(f, product_type, enrich_enabled, client, semaphore)
-        for f in files
-    ]
-    console.print(f"\n[bold]APEX[/] — async processing {len(files)} file(s) "
-                  f"(concurrency={ASYNC_CONCURRENCY})\n")
+    tasks = [_async_process_one(f, product_type, enrich_enabled, client, semaphore) for f in files]
+    console.print(f"\n[bold]APEX[/] — async processing {len(files)} file(s) " f"(concurrency={ASYNC_CONCURRENCY})\n")
     outcomes = await asyncio.gather(*tasks, return_exceptions=True)
     results, failed = [], []
     for f, outcome in zip(files, outcomes):
@@ -107,9 +159,7 @@ async def _async_process_one(
     async with semaphore:
         loop = asyncio.get_event_loop()
         doc = await loop.run_in_executor(None, ingest_file, file)
-        return await loop.run_in_executor(
-            None, run_single, doc, product_type, client, enrich_enabled
-        )
+        return await loop.run_in_executor(None, run_single, doc, product_type, client, enrich_enabled)
 
 
 def _maybe_web_enrich(product: dict, enabled: bool, client) -> dict:
@@ -180,8 +230,7 @@ def _print_summary(results: list, failed: list) -> None:
 def _print_graph_stats() -> None:
     try:
         stats = graph_stats(load_graph())
-        console.print(f"\n[bold]Knowledge Graph:[/] {stats['total_nodes']} nodes, "
-                      f"{stats['total_edges']} edges")
+        console.print(f"\n[bold]Knowledge Graph:[/] {stats['total_nodes']} nodes, " f"{stats['total_edges']} edges")
     except Exception:
         pass
 

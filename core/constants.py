@@ -9,15 +9,17 @@ CLASSIFICATION_MODEL = "claude-haiku-4-5"
 VALIDATION_MODEL = "claude-haiku-4-5"
 
 # ── Pipeline thresholds ───────────────────────────────────────────────────────
-CONFIDENCE_REVIEW_THRESHOLD = 0.70      # below this → human review queue
+CONFIDENCE_REVIEW_THRESHOLD = 0.70  # below this → human review queue
 CONFIDENCE_WEB_SEARCH_THRESHOLD = 0.50  # below this → agent tries web search
-CONFIDENCE_INFER_PENALTY = 0.10         # per inferred field
-MAX_AGENT_ITERATIONS = 5                # max tool-use loop turns
-K_RAG_NEIGHBORS = 5                     # nearest neighbors to fetch
-MAX_EVIDENCE_CHARS = 80                 # max length of evidence quote
-MAX_DOCUMENT_CHARS = 8000               # context window budget per document
-MAX_PDF_PAGES = 4                       # max pages rendered for VLM
-IMAGE_DPI = 150                         # PDF → image render DPI
+CONFIDENCE_INFER_PENALTY = 0.10  # per inferred field
+DEDUP_HARD_THRESHOLD = 0.95  # >= this → definite duplicate, skip
+DEDUP_SOFT_THRESHOLD = 0.85  # >= this and < hard → possible_duplicate flag
+MAX_AGENT_ITERATIONS = 5  # max tool-use loop turns
+K_RAG_NEIGHBORS = 5  # nearest neighbors to fetch
+MAX_EVIDENCE_CHARS = 80  # max length of evidence quote
+MAX_DOCUMENT_CHARS = 8000  # context window budget per document
+MAX_PDF_PAGES = 4  # max pages rendered for VLM
+IMAGE_DPI = 150  # PDF → image render DPI
 
 # ── Product types ─────────────────────────────────────────────────────────────
 PRODUCT_TYPES = ["bearing", "valve", "sensor", "coupling", "fastener", "pump"]
@@ -32,7 +34,7 @@ SOURCE_RULE_DEFAULT = "rule_default"
 # ── Knowledge graph edge types ────────────────────────────────────────────────
 EDGE_COMPATIBLE = "compatible_with"
 EDGE_REPLACES = "replaces"
-EDGE_SAME_AS = "same_as"           # manufacturer aliases
+EDGE_SAME_AS = "same_as"  # manufacturer aliases
 EDGE_STANDARD = "meets_standard"
 
 # ── Storage paths ─────────────────────────────────────────────────────────────
@@ -46,8 +48,17 @@ JSONLD_PRODUCT_TYPE = "Product"
 
 # ── Supported file extensions ─────────────────────────────────────────────────
 SUPPORTED_EXTENSIONS = {
-    ".pdf", ".png", ".jpg", ".jpeg", ".webp",
-    ".txt", ".html", ".htm", ".csv", ".xlsx", ".md",
+    ".pdf",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".txt",
+    ".html",
+    ".htm",
+    ".csv",
+    ".xlsx",
+    ".md",
 }
 
 # ── Security (imported by security/middleware.py) ─────────────────────────────

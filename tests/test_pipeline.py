@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.schemas import load_schema, get_required_fields, get_validation_ranges, schema_for_prompt
@@ -662,3 +664,139 @@ def test_unilog_deep_appliance_extraction():
     assert "Amperage" in attrs
     assert attrs["Amperage"] == "15 A"
 
+
+# ── Duplicate Detector Tests ──────────────────────────────────────────────────
+
+def _make_product(name: str, part: str, mfr: str, attrs=None) -> dict:
+    """Minimal product dict for de-duplication tests."""
+    return {
+        "product_id": part,
+        "product_type": "bearing",
+        "name": name,
+        "manufacturer": mfr,
+        "part_number": part,
+        "attributes": attrs or {},
+        "provenance": {
+            "confidence": 0.90,
+            "field_sources": {},
+        },
+        "validation": {"issues": [], "passed_rules": True, "needs_human_review": False},
+    }
+
+
+def test_duplicate_detector_same_product_high_similarity():
+    """
+    Two identical products should get cosine similarity == 1.0.
+    Tested via the private _cosine_similarity helper — no embedder needed.
+    """
+    from core.duplicate_detector import _cosine_similarity
+
+    vec = [0.1, 0.5, 0.3, 0.8, 0.2]
+    score = _cosine_similarity(vec, vec)
+    assert score == pytest.approx(1.0, abs=1e-6), (
+        f"Identical vectors should have cosine similarity 1.0, got {score}"
+    )
+
+
+def test_duplicate_detector_different_product_low_similarity():
+    """
+    Orthogonal vectors should have cosine similarity == 0.0 (maximally different).
+    """
+    from core.duplicate_detector import _cosine_similarity
+
+    vec_a = [1.0, 0.0, 0.0]
+    vec_b = [0.0, 1.0, 0.0]
+    score = _cosine_similarity(vec_a, vec_b)
+    assert score == pytest.approx(0.0, abs=1e-6), (
+        f"Orthogonal vectors should have cosine similarity 0.0, got {score}"
+    )
+
+
+def test_merge_fills_null_from_secondary():
+    """
+    merge_duplicate_pair must fill null attribute fields in primary
+    from secondary, and tag them as merged_duplicate in field_sources.
+    """
+    from core.duplicate_detector import merge_duplicate_pair, SOURCE_MERGED_DUPLICATE
+
+    primary = _make_product("SKF 6205", "6205", "SKF", {"material": "Chrome steel", "width": None})
+    secondary = _make_product("SKF 6205-2Z", "6205-2Z", "SKF", {"material": "Steel", "width": 15.0})
+
+    merged = merge_duplicate_pair(primary, secondary)
+
+    # Null field "width" must be filled from secondary
+    assert merged["attributes"]["width"] == 15.0
+    # Non-null field "material" must remain primary's value (primary wins)
+    assert merged["attributes"]["material"] == "Chrome steel"
+    # Field source for the filled field must be SOURCE_MERGED_DUPLICATE
+    assert merged["provenance"]["field_sources"]["width"] == SOURCE_MERGED_DUPLICATE
+    # Provenance must record where the data came from
+    assert merged["provenance"]["merged_from"] == "6205-2Z"
+
+
+def test_merge_primary_wins_on_conflict():
+    """
+    merge_duplicate_pair must NOT overwrite a non-null primary field,
+    even if secondary has a different value.
+    """
+    from core.duplicate_detector import merge_duplicate_pair
+
+    primary = _make_product("Bearing A", "A100", "SKF", {"bore": 25.0, "width": 15.0})
+    secondary = _make_product("Bearing A v2", "A100", "SKF", {"bore": 30.0, "width": 20.0})
+
+    merged = merge_duplicate_pair(primary, secondary)
+
+    # Both fields are non-null in primary — primary must win on both
+    assert merged["attributes"]["bore"] == 25.0
+    assert merged["attributes"]["width"] == 15.0
+    # No fields filled → merged_from still set, but field_sources has no merged_duplicate tags
+    assert "merged_from" in merged["provenance"]
+    assert merged["provenance"]["field_sources"] == {}
+
+
+def test_deduplicate_batch_removes_duplicates():
+    """
+    deduplicate_batch must detect and merge duplicates within a batch.
+    Uses a patched _cosine_similarity that returns a fixed score so
+    no real embedder or ChromaDB is required.
+    """
+    import sys
+    from unittest.mock import patch, MagicMock
+    import core.duplicate_detector as dd
+
+    product_a = _make_product("Valve 1/2 NPT", "V100", "Parker", {"size": "1/2 in"})
+    product_b = _make_product("Valve 1/2 NPT", "V100", "Parker", {"size": "1/2 in", "material": "Brass"})
+    product_c = _make_product("Pump 3HP", "P200", "Grundfos", {"power": "3 HP"})
+
+    # Patch _cosine_similarity: A↔B = 0.97 (duplicate), A↔C = 0.20 (different)
+    call_log = []
+
+    def mock_sim(a, b):
+        # First comparison: A vs B → 0.97 (hard duplicate)
+        # Second comparison: A vs C → 0.20 (unique)
+        # Third comparison: B vs C → 0.20 (unique, but B is merged into A already)
+        call_log.append(1)
+        if len(call_log) == 1:
+            return 0.97
+        return 0.20
+
+    # Patch the embedder to return a dummy vector
+    dummy_embedding = [0.1] * 10
+    mock_embedder = MagicMock()
+    mock_embedder.encode.return_value = MagicMock(tolist=lambda: dummy_embedding)
+
+    with patch.object(dd, "_get_embedder", return_value=mock_embedder), \
+         patch.object(dd, "_cosine_similarity", side_effect=mock_sim):
+        unique, dup_log = dd.deduplicate_batch([product_a, product_b, product_c])
+
+    # product_b is a duplicate of product_a → merged in; product_c is unique
+    assert len(unique) == 2, f"Expected 2 unique products, got {len(unique)}"
+    assert len(dup_log) == 1, f"Expected 1 duplicate log entry, got {len(dup_log)}"
+    assert dup_log[0]["similarity"] == pytest.approx(0.97)
+
+    # The merged record must have material filled from product_b
+    merged_attrs = unique[0]["attributes"]
+    assert merged_attrs.get("material") == "Brass"
+
+    # product_c must survive unchanged
+    assert unique[1]["part_number"] == "P200"
