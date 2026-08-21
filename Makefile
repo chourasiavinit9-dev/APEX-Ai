@@ -4,7 +4,7 @@ install:
 	pip install -r requirements.txt
 
 ui:
-	streamlit run ui/app.py
+	python3 run_ui.py
 
 demo:
 	python -m core.pipeline --input data/sample_docs/ --output results/

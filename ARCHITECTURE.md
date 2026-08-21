@@ -127,7 +127,9 @@ Raw Input Row (CSV)
 - **`middleware.py`**: JWT (PyJWT or stdlib HMAC fallback), PBKDF2 passwords, rate limiting, CSRF, XSS sanitization, bot detection
 
 ### `ui/` — Dashboard
-- **`unihack_app.py`**: Streamlit 8-page live dashboard
+- **`index.html`**: APEX Modern Dark Dashboard (HTML5 / CSS / Vanilla JS) with electric lime accents, responsive layout, and Digital Asset & Evidence modal drawer.
+- **`run_ui.py`**: Zero-dependency Python server that launches and opens the dashboard on `localhost:8080`.
+- **`unihack_app.py`**: Backend pipeline batch orchestration runner.
 
 ---
 

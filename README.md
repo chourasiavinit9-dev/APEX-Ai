@@ -121,18 +121,25 @@ data/unihack/
   Unilog-Sample_200_Items-Input-vs-Output.xlsx
 ```
 
-### 4. Launch dashboard
+### 4. Launch live APEX Dashboard
 
 ```bash
-streamlit run ui/unihack_app.py
+python3 run_ui.py
+# 🚀 Opens http://localhost:8080 automatically in your browser!
+```
+
+Or using Make:
+```bash
+make ui
 ```
 
 ### 5. Run tests
 
 ```bash
-python3 -m pytest tests/ -v      # 194 tests
+python3 -m pytest tests/ -v      # 264 tests passing
 python3 evaluate.py --demo       # Evaluation framework
 ```
+
 
 ---
 

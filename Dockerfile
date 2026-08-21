@@ -15,11 +15,8 @@ COPY . .
 # Create data directories
 RUN mkdir -p data/product_catalog_db data/sample_docs results
 
-EXPOSE 8501
+EXPOSE 8080
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["streamlit", "run", "ui/app.py", \
-     "--server.port=8501", \
-     "--server.address=0.0.0.0", \
-     "--server.headless=true"]
+CMD ["python3", "run_ui.py", "--port=8080", "--no-browser"]
