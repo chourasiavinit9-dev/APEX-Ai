@@ -462,10 +462,10 @@
       <svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zM9 1v4h4M4 9h8M4 12h5"/></svg>
       Reports
     </div>
-    <div class="nav-item" onclick="nav('evaluation')">
+    <div class="nav-item" onclick="nav('performance')">
       <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 11h2v3H2v-3zm4-4h2v7H6V7zm4-5h2v12h-2V2zm4 7h2v5h-2V9z"/></svg>
-      Evaluation
-      <span class="badge new">Live</span>
+      Validation Performance
+      <span class="badge new">Active</span>
     </div>
   </div>
 
@@ -638,7 +638,7 @@
         </div>
         <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
           <button class="run-btn" style="flex:1;justify-content:center" onclick="startPipelineDemo()">▶ Run Enrichment & Source Verification</button>
-          <button class="dl-btn" onclick="toast('Loaded sample UniHack dataset with official sources')">Use Sample Dataset</button>
+          <button class="dl-btn" onclick="toast('Loaded sample catalog dataset with official sources')">Use Sample Dataset</button>
         </div>
       </div>
       <div class="card" id="progress-card" style="display:none">
@@ -714,54 +714,101 @@
 
   <!-- ══ REPORTS PAGE ══ -->
   <div class="content page" id="page-reports">
-    <div class="report-card" onclick="toast('Downloading 252-col Unilog CSV…')">
-      <div class="report-icon">📊</div>
-      <div>
-        <div class="report-title">Full Unilog Delivery CSV</div>
-        <div class="report-sub">252-column format · 1,000 rows · Approved records only</div>
-      </div>
-      <div class="dl-btn">↓ Download CSV</div>
+    <div style="margin-bottom:20px">
+      <h2 style="font-size:18px;font-weight:700;margin:0 0 4px 0">Catalog Delivery & Reports</h2>
+      <div style="font-size:12px;color:var(--muted)">Export verified catalog datasets, digital assets, and review data quality notes</div>
     </div>
-    <div class="report-card" onclick="toast('Downloading Verified Provenance & Sources JSON…')">
-      <div class="report-icon">🔍</div>
-      <div>
-        <div class="report-title">Provenance & Digital Asset JSON</div>
-        <div class="report-sub">Official product pages, datasheets, evidence citations & coverage score</div>
+
+    <!-- Export Downloads -->
+    <div style="margin-bottom:28px">
+      <div class="report-card" onclick="toast('Downloading 15-col Unilog CSV…')">
+        <div class="report-icon">📊</div>
+        <div>
+          <div class="report-title">Full Unilog Delivery CSV</div>
+          <div class="report-sub">15 validated Unilog delivery fields, expandable to the full 252-column format · 1,000 rows · Approved records only</div>
+        </div>
+        <div class="dl-btn">↓ Download CSV</div>
       </div>
-      <div class="dl-btn">↓ Download JSON</div>
+      <div class="report-card" onclick="toast('Downloading Verified Provenance & Sources JSON…')">
+        <div class="report-icon">🔍</div>
+        <div>
+          <div class="report-title">Provenance & Digital Asset JSON</div>
+          <div class="report-sub">Official product pages, datasheets, evidence citations & coverage score</div>
+        </div>
+        <div class="dl-btn">↓ Download JSON</div>
+      </div>
+      <div class="report-card" onclick="toast('Downloading Schema.org JSON-LD export…')">
+        <div class="report-icon">🌐</div>
+        <div>
+          <div class="report-title">JSON-LD Export</div>
+          <div class="report-sub">Schema.org Product · verified source URLs · SEO-ready</div>
+        </div>
+        <div class="dl-btn">↓ Download JSON-LD</div>
+      </div>
     </div>
-    <div class="report-card" onclick="toast('Downloading Schema.org JSON-LD export…')">
-      <div class="report-icon">🌐</div>
-      <div>
-        <div class="report-title">JSON-LD Export</div>
-        <div class="report-sub">Schema.org Product · verified source URLs · SEO-ready</div>
+
+    <!-- Data Quality Notes Section -->
+    <div class="card" id="data-quality-section" style="border-left:4px solid var(--yellow)">
+      <div class="card-header">
+        <div class="card-title">
+          <span>⚠️ Data Quality Notes</span>
+        </div>
+        <span class="badge" style="background:#2d1f00;color:var(--yellow)">Supplier Audit</span>
       </div>
-      <div class="dl-btn">↓ Download JSON-LD</div>
+      <div style="font-size:12.5px;line-height:1.6;color:var(--text)">
+        <p style="margin:0 0 14px 0;color:var(--muted)">
+          APEX detected incomplete or conflicting supplier data during validation.<br>
+          These records are preserved for review; APEX does not invent missing information.
+        </p>
+        
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
+          <div style="font-weight:600;color:var(--text);margin-bottom:2px">3 records have missing UNSPSC codes</div>
+          <div style="color:var(--muted);font-size:12px">These records require taxonomy review before export.</div>
+        </div>
+        
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
+          <div style="font-weight:600;color:var(--text);margin-bottom:2px">1 record requires manufacturer and brand verification</div>
+          <div style="color:var(--muted);font-size:12px">This may represent an OEM, private-label, or manufacturer-brand relationship.</div>
+        </div>
+        
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px">
+          <div style="font-weight:600;color:var(--text);margin-bottom:2px">47 records have no country-of-origin value</div>
+          <div style="color:var(--muted);font-size:12px">These records are retained as “Not provided” and flagged only when country of origin is required.</div>
+        </div>
+        
+        <div style="background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:14px">
+          <div style="font-weight:700;color:var(--cyan);margin-bottom:4px">How APEX handles incomplete data</div>
+          <div style="font-size:12px;color:var(--text);line-height:1.5">
+            APEX preserves source traceability, assigns conservative confidence scores, and routes missing or conflicting fields to review instead of guessing.
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- ══ EVALUATION PAGE ══ -->
-  <div class="content page" id="page-evaluation">
+  <!-- ══ VALIDATION PERFORMANCE PAGE ══ -->
+  <div class="content page" id="page-performance">
     
-    <!-- SECTION 1: Pipeline Scorecard -->
+    <!-- Header -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div>
-        <h2 style="font-size:18px;font-weight:700;margin:0 0 4px 0">Pipeline Scorecard</h2>
-        <div style="font-size:12px;color:var(--muted)">Automated benchmark vs UniHack judging criteria (1,000 processed SKUs)</div>
+        <h2 style="font-size:18px;font-weight:700;margin:0 0 4px 0">Validation Performance</h2>
+        <div style="font-size:12px;color:var(--muted)">Automated data quality and rule compliance metrics across processed catalog records</div>
       </div>
       <div style="display:flex;gap:8px">
-        <span class="badge" style="background:var(--green-bg);color:var(--green);font-size:11px;padding:4px 10px">✅ Scorecard Passing</span>
+        <span class="badge" style="background:var(--green-bg);color:var(--green);font-size:11px;padding:4px 10px">✅ Standard Compliant</span>
       </div>
     </div>
 
+    <!-- Metrics Row with Business Labels -->
     <div class="metrics-row" style="margin-bottom:24px">
       <div class="metric-card">
         <div class="metric-label">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--green)"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>
-          Validation Score
+          Attribute Validation Rate
         </div>
         <div class="metric-value" style="color:var(--green)">94.2%</div>
-        <div class="metric-sub"><span class="up">✅ Target: ≥ 80%</span> (Checks passed)</div>
+        <div class="metric-sub"><span class="up">✅ Target: ≥ 80%</span> (Approved attributes)</div>
         <div class="metric-bar">
           <span style="height:40%"></span><span style="height:60%"></span><span style="height:75%"></span>
           <span style="height:85%"></span><span style="height:90%"></span><span style="height:95%"></span>
@@ -772,7 +819,7 @@
       <div class="metric-card">
         <div class="metric-label">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--green)"><path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/></svg>
-          Char Limit Compliance
+          Description Rule Compliance
         </div>
         <div class="metric-value" style="color:var(--green)">100%</div>
         <div class="metric-sub"><span class="up">✅ Target: 100%</span> (Invoice ≤40, Mob 60–80)</div>
@@ -786,10 +833,10 @@
       <div class="metric-card">
         <div class="metric-label">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--green)"><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm2-1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H4z"/></svg>
-          LOV Hit Rate
+          Source Coverage
         </div>
         <div class="metric-value" style="color:var(--green)">96.8%</div>
-        <div class="metric-sub"><span class="up">✅ Target: ≥ 90%</span> (Approved vocab)</div>
+        <div class="metric-sub"><span class="up">✅ Target: ≥ 90%</span> (Approved taxonomy & LOV)</div>
         <div class="metric-bar">
           <span style="height:70%"></span><span style="height:80%"></span><span style="height:88%"></span>
           <span style="height:92%"></span><span style="height:95%"></span><span style="height:97%"></span>
@@ -800,10 +847,10 @@
       <div class="metric-card">
         <div class="metric-label">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--green)"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/></svg>
-          Human Review Rate
+          Review Rate
         </div>
         <div class="metric-value" style="color:var(--green)">12.4%</div>
-        <div class="metric-sub"><span class="up">✅ Target: &lt; 25%</span> (Auto-approved 87.6%)</div>
+        <div class="metric-sub"><span class="up">✅ Target: &lt; 25%</span> (Automated pass: 87.6%)</div>
         <div class="metric-bar">
           <span style="height:35%"></span><span style="height:25%"></span><span style="height:20%"></span>
           <span style="height:18%"></span><span style="height:15%"></span><span style="height:13%"></span>
@@ -812,14 +859,14 @@
       </div>
     </div>
 
-    <!-- SECTION 2: Field-Level Accuracy Table -->
+    <!-- Reference Dataset Accuracy Table -->
     <div class="card" style="margin-bottom:24px">
       <div class="card-header">
         <div class="card-title">
-          <span>🎯 Field-Level Accuracy vs Ground Truth</span>
+          <span>🎯 Reference Dataset Accuracy</span>
         </div>
         <div style="font-size:11.5px;color:var(--muted)">
-          Comparing against 200-Item Ground Truth Benchmark
+          Comparing against 200-Item Reference Benchmark
         </div>
       </div>
       <div class="table-wrap">
@@ -828,7 +875,7 @@
             <tr>
               <th style="width:160px">Field</th>
               <th>Your Output (APEX)</th>
-              <th>Ground Truth Benchmark</th>
+              <th>Reference Benchmark</th>
               <th style="width:140px">Match Status</th>
             </tr>
           </thead>
@@ -890,7 +937,7 @@
             <tr>
               <td style="font-weight:600;color:var(--text)">Country of Origin</td>
               <td>United States</td>
-              <td style="color:var(--muted)">— (Blank in GT)</td>
+              <td style="color:var(--muted)">— (Not provided in benchmark)</td>
               <td><span class="status-pill status-pending">⬜ Enriched</span></td>
             </tr>
           </tbody>
@@ -898,34 +945,7 @@
       </div>
     </div>
 
-    <!-- SECTION 3: Data Quality Observations -->
-    <div class="card" style="margin-bottom:24px;border-left:4px solid var(--yellow)">
-      <div class="card-header">
-        <div class="card-title">
-          <span>⚠️ Data Quality Observations (Ground Truth Audit)</span>
-        </div>
-        <span class="badge" style="background:#2d1f00;color:var(--yellow)">4 Disclosed Items</span>
-      </div>
-      <div style="font-size:12.5px;line-height:1.6;color:var(--text)">
-        <p style="margin:0 0 10px 0;color:var(--muted)">
-          During rigorous validation against the 200-row ground truth dataset, the following data hygiene anomalies were documented per UniHack judging transparency guidelines:
-        </p>
-        <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
-          <strong>⚠️ 3 rows in ground truth have blank UNSPSC codes:</strong> Rows 1, 45, 112 missing taxonomy codes entirely.
-        </div>
-        <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
-          <strong>⚠️ 1 row has manufacturer/brand mismatch:</strong> Row 1 — Manufacturer: <code>Rheem Manufacturing</code>, Brand: <code>FRIGIDAIRE®</code> (Identified as OEM/white-label contract relationship — flagged for audit, not treated as pipeline error).
-        </div>
-        <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px">
-          <strong>⚠️ Country of origin blank in ground truth for 47 of 200 rows:</strong> Left empty in raw inputs.
-        </div>
-        <div style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:12px">
-          <strong style="color:var(--cyan)">ℹ️ Policy Impact:</strong> These gaps are formally logged. Confidence scores are carefully bounded for fields sourced from incomplete ground truth rows, and missing ground truth fields are excluded from false-negative penalty.
-        </div>
-      </div>
-    </div>
-
-    <!-- SECTION 4: Cost Estimate with Assumptions -->
+    <!-- Cost Estimate & Efficiency Breakdown -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">
@@ -1371,9 +1391,9 @@ function nav(page) {
     dashboard: 'Dashboard',
     pipeline: 'Pipeline',
     products: 'Products',
-    evaluation: 'Evaluation Scorecard',
+    performance: 'Validation Performance',
     analytics: 'Analytics',
-    reports: 'Reports',
+    reports: 'Reports & Data Quality',
     settings: 'Settings'
   };
   document.getElementById('topbar-title').textContent = titles[page]||page;
