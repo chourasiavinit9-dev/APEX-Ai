@@ -410,3 +410,119 @@ def test_evaluation_human_review_rate():
     low_conf_record["brand_confidence"] = 0.3
     result = run_evaluation([low_conf_record], [])
     assert result["human_review_rate"] >= 0.0
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Fittings Resolver Tests
+# All tests use the hardcoded fallback path (no xlsx file required).
+# ══════════════════════════════════════════════════════════════════════════════
+
+from loaders.fittings_resolver import (
+    resolve_fitting_type,
+    resolve_connection_type,
+    resolve_material,
+    enrich_fitting,
+    load_connection_type_map,
+    load_fitting_types,
+    load_material_map,
+)
+
+
+def test_resolve_fitting_type_coupling():
+    """'3/8 CPLG BRS 150#' should resolve to Coupling with high confidence."""
+    result, conf = resolve_fitting_type("3/8 CPLG BRS 150#")
+    assert result == "Coupling", f"Expected 'Coupling', got {result!r}"
+    assert conf >= 0.90, f"Expected confidence >= 0.90, got {conf}"
+
+
+def test_resolve_fitting_type_elbow():
+    """'90 ELL 1/2 SS' should resolve to Elbow 90 Deg."""
+    result, conf = resolve_fitting_type("90 ELL 1/2 SS")
+    assert result == "Elbow 90 Deg", f"Expected 'Elbow 90 Deg', got {result!r}"
+    assert conf >= 0.90, f"Expected confidence >= 0.90, got {conf}"
+
+
+def test_resolve_fitting_type_tee():
+    """'1/2 TEE BRS NPT' should resolve to Tee."""
+    result, conf = resolve_fitting_type("1/2 TEE BRS NPT")
+    assert result == "Tee", f"Expected 'Tee', got {result!r}"
+    assert conf >= 0.90
+
+
+def test_resolve_connection_type_fnpt():
+    """Exact key 'fnpt' must resolve to canonical 'FNPT' with confidence 1.0."""
+    result, conf = resolve_connection_type("fnpt")
+    assert result == "FNPT", f"Expected 'FNPT', got {result!r}"
+    assert conf == 1.0, f"Expected exact confidence 1.0, got {conf}"
+
+
+def test_resolve_connection_type_female_npt():
+    """'female npt' should resolve to 'FNPT' via exact map lookup."""
+    result, conf = resolve_connection_type("female npt")
+    assert result == "FNPT", f"Expected 'FNPT', got {result!r}"
+    assert conf == 1.0
+
+
+def test_resolve_connection_type_fuzzy():
+    """'socket welded' is not in the exact map — should still resolve via fuzzy to SW."""
+    result, conf = resolve_connection_type("socket welded")
+    # Should either hit 'socket weld' → SW exactly (suffix differs slightly) or fuzzy
+    assert result is not None, "Expected a fuzzy match for 'socket welded', got None"
+    assert conf >= 0.75, f"Expected confidence >= 0.75 for fuzzy match, got {conf}"
+
+
+def test_resolve_material_brass():
+    """'BRS' (the abbreviation used in Part_Desc) should resolve to 'Brass'."""
+    result, conf = resolve_material("brs")
+    assert result == "Brass", f"Expected 'Brass', got {result!r}"
+    assert conf == 1.0
+
+
+def test_resolve_material_stainless():
+    """'316 SS' should resolve to 'Stainless Steel' via exact map."""
+    result, conf = resolve_material("316 ss")
+    assert result == "Stainless Steel", f"Expected 'Stainless Steel', got {result!r}"
+    assert conf == 1.0
+
+
+def test_enrich_fitting_returns_dict():
+    """enrich_fitting() must return a dict with 'attributes', 'confidence', 'needs_review'."""
+    row = {"Part_Desc": "3/8 CPLG BRS 150# NPT", "connection_type": "fnpt"}
+    result = enrich_fitting(row)
+
+    assert isinstance(result, dict), "enrich_fitting must return a dict"
+    assert "attributes" in result
+    assert "confidence" in result
+    assert "needs_review" in result
+
+    attrs = result["attributes"]
+    # Fitting type must be resolved from 'CPLG'
+    assert attrs.get("Fitting Type") == "Coupling", (
+        f"Expected Fitting Type='Coupling', got {attrs.get('Fitting Type')!r}"
+    )
+    # Size must be extracted from '3/8'
+    assert attrs.get("Connection Size") == "3/8 in", (
+        f"Expected Connection Size='3/8 in', got {attrs.get('Connection Size')!r}"
+    )
+    # Material must be extracted from 'BRS'
+    assert attrs.get("Material") == "Brass", (
+        f"Expected Material='Brass', got {attrs.get('Material')!r}"
+    )
+    # Pressure rating from '150#'
+    assert attrs.get("Pressure Rating") == "150 PSI", (
+        f"Expected Pressure Rating='150 PSI', got {attrs.get('Pressure Rating')!r}"
+    )
+    # Connection type from row['connection_type'] = 'fnpt'
+    assert attrs.get("Connection Type") == "FNPT", (
+        f"Expected Connection Type='FNPT', got {attrs.get('Connection Type')!r}"
+    )
+
+
+def test_load_connection_type_map_has_fnpt():
+    """The loaded connection-type map must contain the 'fnpt' key."""
+    mapping = load_connection_type_map()
+    assert isinstance(mapping, dict), "load_connection_type_map must return a dict"
+    assert "fnpt" in mapping, "'fnpt' key must be present in connection-type map"
+    assert mapping["fnpt"] == "FNPT", (
+        f"Expected mapping['fnpt']='FNPT', got {mapping['fnpt']!r}"
+    )
