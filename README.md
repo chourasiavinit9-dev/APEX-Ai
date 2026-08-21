@@ -37,10 +37,12 @@ APEX is a modular enrichment pipeline that transforms raw catalogue rows into co
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│                  APEX Dashboard                      │
+│           APEX Modern Dark Dashboard                 │
 │   Upload CSV · Live Progress · Evidence Drawer       │
-│   Priority Review Queue · 3-Format Export            │
+│   Digital Asset Verification · Source Coverage      │
+│   Run: python3 run_ui.py → localhost:8080           │
 └──────────────────────────┬───────────────────────────┘
+```
 
                      │
          ┌───────────▼──────────────┐
@@ -85,7 +87,7 @@ APEX is a modular enrichment pipeline that transforms raw catalogue rows into co
 | Vector search | ChromaDB + MiniLM-L6-v2 (CPU) | Free |
 | Persistence | SQLite (stdlib) | Free |
 | Knowledge graph | NetworkX | Free |
-| Dashboard | Streamlit | Free |
+| Dashboard | HTML5 / Vanilla JS (index.html + run_ui.py) | Free |
 
 **Total: ~$2/1,000 rows (vs ~$14 for a generic all-LLM pipeline)**
 

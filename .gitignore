@@ -76,5 +76,6 @@ CODE_QUALITY.md
 REQUIREMENTS.md
 score_check.py
 ui/app.py
+ui/unihack_app.py
 .idx/
 
