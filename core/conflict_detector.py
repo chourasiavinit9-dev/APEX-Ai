@@ -26,38 +26,20 @@ def detect_conflicts(raw_row: dict, enriched: dict) -> List[dict]:
     return conflicts
 
 
+def _extract_brand_fields(raw: dict) -> dict:
+    """Extract non-placeholder brand fields from raw row."""
+    fields = ("E1_Brand", "Unilog_Brand", "DIB_Brand", "Part_Manuf")
+    return {f: raw[f] for f in fields if raw.get(f) and not _is_placeholder(raw[f])}
+
+
 def _check_brand_mismatch(raw: dict, enriched: dict) -> List[dict]:
     """Flag when raw brand fields disagree with each other."""
     conflicts = []
-    brand_fields = {}
-    for field in ("E1_Brand", "Unilog_Brand", "DIB_Brand", "Part_Manuf"):
-        val = raw.get(field, "")
-        if val and not _is_placeholder(val):
-            brand_fields[field] = val
-
-    if len(brand_fields) >= 2:
-        values = list(brand_fields.values())
-        # Normalize for comparison
-        normalized = [v.lower().strip().rstrip("®™").strip() for v in values]
-        unique = set(normalized)
-        if len(unique) > 1:
-            conflicts.append({
-                "type": "brand_mismatch",
-                "severity": "warning",
-                "message": f"Brand fields disagree: {brand_fields}",
-                "fields": list(brand_fields.keys()),
-            })
-
-    # Check resolved brand vs raw
-    resolved = enriched.get("brand_name", "")
-    if resolved and enriched.get("brand_match_type") == "fallback":
-        conflicts.append({
-            "type": "brand_unresolved",
-            "severity": "info",
-            "message": f"Brand '{enriched.get('raw_brand', '')}' not in master list — using as-is",
-            "fields": ["brand_name"],
-        })
-
+    bf = _extract_brand_fields(raw)
+    if len(bf) >= 2 and len({v.lower().strip().rstrip("®™").strip() for v in bf.values()}) > 1:
+        conflicts.append({"type": "brand_mismatch", "severity": "warning", "message": f"Brand fields disagree: {bf}", "fields": list(bf.keys())})
+    if enriched.get("brand_name") and enriched.get("brand_match_type") == "fallback":
+        conflicts.append({"type": "brand_unresolved", "severity": "info", "message": f"Brand '{enriched.get('raw_brand', '')}' not in master list — using as-is", "fields": ["brand_name"]})
     return conflicts
 
 

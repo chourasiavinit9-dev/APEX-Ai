@@ -13,6 +13,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field as dc_field
 from typing import Optional, Dict, List, Any
 
+from core.constants import CONFIDENCE_REVIEW_THRESHOLD
+
 
 @dataclass
 class FieldProvenance:
@@ -159,7 +161,7 @@ def build_provenance_for_enriched(raw_row: dict, enriched: dict) -> RecordProven
             prov.set(desc_field, FieldProvenance(
                 source_type="inferred",
                 resource_url="Rule-based fallback" if is_fallback else "Claude Haiku → Description Builder",
-                confidence=0.70 if is_fallback else 0.85,
+                confidence=CONFIDENCE_REVIEW_THRESHOLD if is_fallback else 0.85,
             ))
 
     return prov
@@ -169,7 +171,7 @@ def compute_priority_score(enriched: dict, prov: RecordProvenance) -> int:
     """
     Compute review priority score (higher = more urgent).
     - Missing required fields: +30
-    - Low confidence (<0.70): +25
+    - Low confidence (< CONFIDENCE_REVIEW_THRESHOLD): +25
     - No source evidence: +10 per field
     - Conflicting sources: +20
     """
@@ -182,7 +184,7 @@ def compute_priority_score(enriched: dict, prov: RecordProvenance) -> int:
             score += 30
 
     # Low overall confidence
-    if prov.avg_confidence < 0.70:
+    if prov.avg_confidence < CONFIDENCE_REVIEW_THRESHOLD:
         score += 25
     elif prov.avg_confidence < 0.80:
         score += 10

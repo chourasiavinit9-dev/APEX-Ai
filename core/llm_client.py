@@ -16,15 +16,17 @@ from __future__ import annotations
 import os
 from typing import Optional
 
+from core.constants import CLASSIFICATION_MODEL, EXTRACTION_MODEL
+
 # OpenRouter endpoint compatible with Anthropic SDK
 _OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 # Model aliases for OpenRouter (maps Anthropic model names → OpenRouter names)
 OPENROUTER_MODEL_MAP = {
-    "claude-haiku-4-5": "anthropic/claude-haiku-4-5",
-    "claude-haiku-4-5-20250514": "anthropic/claude-haiku-4-5",
+    CLASSIFICATION_MODEL: f"anthropic/{CLASSIFICATION_MODEL}",
+    f"{CLASSIFICATION_MODEL}-20250514": f"anthropic/{CLASSIFICATION_MODEL}",
     "claude-3-haiku-20240307": "anthropic/claude-3-haiku",
-    "claude-sonnet-4-5": "anthropic/claude-sonnet-4-5",
+    EXTRACTION_MODEL: f"anthropic/{EXTRACTION_MODEL}",
     "claude-3-5-sonnet-20241022": "anthropic/claude-3-5-sonnet",
     "claude-3-5-sonnet-20240620": "anthropic/claude-3-5-sonnet",
 }

@@ -211,3 +211,32 @@ class ExtractionErrorSchema(BaseModel):
     error: str
     issues: List[Dict[str, Any]] = Field(default_factory=list)
     source_document: Optional[str] = None
+
+
+class UOMConversionResultSchema(BaseModel):
+    """Schema for unit of measure conversion and ambiguity handling."""
+    raw_value: str
+    normalised_value: Optional[str] = None
+    is_ambiguous: bool = False
+    ambiguity_reason: Optional[str] = None
+    suggested_alternatives: List[str] = Field(default_factory=list)
+
+    @classmethod
+    def from_raw(cls, raw: str, unit_hint: str = "") -> "UOMConversionResultSchema":
+        from loaders.uom_normaliser import normalise_single_value, AmbiguousUOM
+        res = normalise_single_value(raw, unit_hint=unit_hint)
+        if isinstance(res, AmbiguousUOM):
+            return cls(
+                raw_value=res.raw_value,
+                normalised_value=None,
+                is_ambiguous=True,
+                ambiguity_reason=res.reason,
+                suggested_alternatives=res.suggested_alternatives,
+            )
+        return cls(
+            raw_value=raw,
+            normalised_value=str(res),
+            is_ambiguous=False,
+            ambiguity_reason=None,
+            suggested_alternatives=[],
+        )
