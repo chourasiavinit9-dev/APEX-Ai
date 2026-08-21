@@ -10,6 +10,7 @@ Rules enforced:
 
 Never makes network calls — pure URL parsing only.
 """
+
 from __future__ import annotations
 
 from typing import Optional, Set
@@ -67,6 +68,7 @@ BLOCKED_DOMAINS: Set[str] = {
 }
 
 # ── URL helpers ───────────────────────────────────────────────────────────────
+
 
 def get_registered_domain(url: str) -> Optional[str]:
     """
@@ -217,8 +219,7 @@ def verify_source_url(
             official_domain=domain,
             status=SourceStatus.REJECTED,
             rejection_reason=(
-                f"Domain '{domain}' is not an approved manufacturer domain. "
-                f"Approved: [{approved_list}]"
+                f"Domain '{domain}' is not an approved manufacturer domain. " f"Approved: [{approved_list}]"
             ),
         )
 

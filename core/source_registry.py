@@ -10,6 +10,7 @@ Domain rules:
   - Includes common CDN subdomain patterns for known manufacturers.
   - Never includes distributor or marketplace domains.
 """
+
 from __future__ import annotations
 
 import re

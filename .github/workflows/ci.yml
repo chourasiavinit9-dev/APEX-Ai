@@ -30,16 +30,16 @@ jobs:
 
       - name: Check code style (flake8)
         run: |
-          flake8 core/ loaders/ generators/ validators/ security/ \
+          flake8 core/ loaders/ generators/ validators/ security/ schemas/ \
             --max-line-length=120 \
             --extend-ignore=E203,W503 \
             --exclude=__pycache__,*.pyc
 
       - name: Check formatting (black)
-        run: black --check --line-length=120 core/ loaders/ generators/ validators/ security/
+        run: black --check --line-length=120 core/ loaders/ generators/ validators/ security/ schemas/
 
       - name: Check import order (isort)
-        run: isort --check-only --profile black core/ loaders/ generators/ validators/ security/
+        run: isort --check-only --profile black core/ loaders/ generators/ validators/ security/ schemas/
 
   # ── Job 2: Test Suite ───────────────────────────────────────────────────────
   test:
@@ -82,6 +82,7 @@ jobs:
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml \
             -x
+        # 264 tests — no API key required, all run locally
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4
@@ -166,8 +167,8 @@ jobs:
           print('✅ All modules import and initialize correctly')
           "
 
-      - name: Syntax check Streamlit app
-        run: python3 -c "import ast; ast.parse(open('ui/unihack_app.py').read()); print('✅ Dashboard syntax OK')"
+      - name: Verify dashboard server
+        run: python3 -c "from pathlib import Path; assert Path('ui/index.html').exists(); print('✅ Dashboard (ui/index.html) present')"
 
       - name: Run evaluate demo
         run: python3 evaluate.py --demo

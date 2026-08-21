@@ -4,6 +4,7 @@ schemas/asset.py — Data models for Digital Asset & Source Verification.
 Tracks official manufacturer product pages, datasheets, and images
 with full verification status, evidence, and rejection reasons.
 """
+
 from __future__ import annotations
 
 from enum import Enum
@@ -51,13 +52,18 @@ class ProductSources(BaseModel):
 
     def to_export_dict(self) -> dict:
         """Serialize for JSON / JSON-LD export — stripped of None values."""
+
         def _asset(a: DigitalAsset) -> dict:
-            return {k: v for k, v in {
-                "url": a.url,
-                "status": a.status.value,
-                "evidence": a.evidence,
-                "rejection_reason": a.rejection_reason,
-            }.items() if v is not None}
+            return {
+                k: v
+                for k, v in {
+                    "url": a.url,
+                    "status": a.status.value,
+                    "evidence": a.evidence,
+                    "rejection_reason": a.rejection_reason,
+                }.items()
+                if v is not None
+            }
 
         return {
             "product_page": _asset(self.product_page),

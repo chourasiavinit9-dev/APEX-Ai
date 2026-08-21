@@ -18,31 +18,42 @@ Source constraint (UniHack rule):
   Web enrichment must use manufacturer sites only.
   Amazon, eBay, distributor sites are EXCLUDED.
 """
+
 from __future__ import annotations
+
 import json
-import os
 import re
-from pathlib import Path
 
 import anthropic
 
 from core.constants import CLASSIFICATION_MODEL, EXTRACTION_MODEL
-from loaders.data_loader import (
-    clean_brand_fields, get_lov_for_classpath,
-    get_valid_values, get_all_classpaths, is_placeholder,
-)
-from loaders.manufacturer_normaliser import normalise_from_row, BrandMatch
-from loaders.uom_normaliser import normalise_uom_dict, normalise_uom
 from generators.description_builder import (
-    build_descriptions, extract_series_from_desc,
+    build_descriptions,
+    extract_series_from_desc,
 )
-from validators.output_validator import validate_output, ValidationReport
+from loaders.data_loader import (
+    clean_brand_fields,
+    get_lov_for_classpath,
+    get_valid_values,
+    is_placeholder,
+)
+from loaders.manufacturer_normaliser import BrandMatch, normalise_from_row
+from loaders.uom_normaliser import normalise_uom_dict
+from validators.output_validator import ValidationReport, validate_output
 
 # Excluded domains for web enrichment (UniHack sourcing rule)
-EXCLUDED_DOMAINS = frozenset({
-    "amazon.com", "ebay.com", "grainger.com", "mcmaster.com",
-    "fastenal.com", "hdSupply.com", "zoro.com", "globalindustrial.com",
-})
+EXCLUDED_DOMAINS = frozenset(
+    {
+        "amazon.com",
+        "ebay.com",
+        "grainger.com",
+        "mcmaster.com",
+        "fastenal.com",
+        "hdSupply.com",
+        "zoro.com",
+        "globalindustrial.com",
+    }
+)
 
 
 def enrich_row(
@@ -56,8 +67,8 @@ def enrich_row(
     """
     if client is None:
         from core.llm_client import get_client
-        client = get_client()   # handles OpenRouter and Anthropic automatically
 
+        client = get_client()  # handles OpenRouter and Anthropic automatically
 
     record: dict = {"_raw": raw_row.copy(), "_pipeline_steps": []}
 
@@ -83,9 +94,7 @@ def enrich_row(
     # Step 5 — Web enrichment (Sonnet, sparse records only)
     non_null = sum(1 for v in record["attributes"].values() if v)
     if enrich_web and non_null < 3:
-        record["attributes"] = _web_enrich_attributes(
-            row, record["attributes"], brand_match, client
-        )
+        record["attributes"] = _web_enrich_attributes(row, record["attributes"], brand_match, client)
         record["_pipeline_steps"].append("web_enrich")
 
     # Step 6 — Description building (Haiku, all 5 formats)
@@ -110,9 +119,9 @@ def enrich_row(
 
     # Step 7 — Digital Asset & Source Verification (local-first, free)
     try:
+        from core.catalog_db import upsert_product_sources
         from core.digital_assets import collect_product_assets
         from core.source_registry import get_approved_domains
-        from core.catalog_db import upsert_product_sources
 
         manufacturer = record.get("manufacturer_name", "")
         brand = record.get("brand_name", "")
@@ -175,14 +184,11 @@ def _brand_fields(match: BrandMatch, row: dict) -> dict:
         "brand_code": match.brand_code,
         "brand_confidence": match.confidence,
         "brand_match_type": match.match_type,
-        "raw_brand": (row.get("Unilog_Brand") or row.get("E1_Brand")
-                      or row.get("Part_Manuf") or ""),
+        "raw_brand": (row.get("Unilog_Brand") or row.get("E1_Brand") or row.get("Part_Manuf") or ""),
     }
 
 
-def _classify_taxonomy(
-    row: dict, brand: BrandMatch, client: anthropic.Anthropic
-) -> str:
+def _classify_taxonomy(row: dict, brand: BrandMatch, client: anthropic.Anthropic) -> str:
     """Classify product into Unilog classpath using Claude Haiku."""
     dept = row.get("Dept", "")
     class_ = row.get("Class", "")
@@ -209,9 +215,7 @@ def _classify_taxonomy(
         return hint or "Uncategorized"
 
 
-def _extract_attributes(
-    row: dict, classpath: str, client: anthropic.Anthropic
-) -> dict:
+def _extract_attributes(row: dict, classpath: str, client: anthropic.Anthropic) -> dict:
     """Extract product attributes using Claude Haiku, constrained to LOV."""
     desc = row.get("Part_Desc", "")
     lov_df = get_lov_for_classpath(classpath)
@@ -236,8 +240,7 @@ def _extract_attributes(
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}],
         )
-        raw = re.sub(r"^```(?:json)?\s*|\s*```$", "",
-                     resp.content[0].text.strip())
+        raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", resp.content[0].text.strip())
         return json.loads(raw)
     except Exception:
         return _parse_desc_heuristic(desc)
@@ -270,10 +273,7 @@ def _web_enrich_attributes(
             tools=[{"type": "web_search_20250305", "name": "web_search"}],
             messages=[{"role": "user", "content": f"Find specs for: {query}"}],
         )
-        text = " ".join(
-            b.text for b in resp.content
-            if hasattr(b, "type") and b.type == "text"
-        )
+        text = " ".join(b.text for b in resp.content if hasattr(b, "type") and b.type == "text")
         raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
         new_attrs = json.loads(raw)
         for k, v in new_attrs.items():
@@ -332,8 +332,14 @@ def _parse_desc_heuristic(desc: str) -> dict:
     if size_m:
         attrs["Connection Size"] = f"{size_m.group(1)} in"
     # Material abbreviations
-    mat_map = {"BRS": "Brass", "STL": "Steel", "SST": "Stainless Steel",
-               "BLK": "Black Iron", "PVC": "PVC", "CPVC": "CPVC"}
+    mat_map = {
+        "BRS": "Brass",
+        "STL": "Steel",
+        "SST": "Stainless Steel",
+        "BLK": "Black Iron",
+        "PVC": "PVC",
+        "CPVC": "CPVC",
+    }
     for abbr, material in mat_map.items():
         if abbr in desc.upper():
             attrs["Material"] = material

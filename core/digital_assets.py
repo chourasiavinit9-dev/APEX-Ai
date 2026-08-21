@@ -12,12 +12,13 @@ Coverage scoring:
 
 needs_human_review = True when coverage < 0.7
 """
+
 from __future__ import annotations
 
 from typing import List, Optional, Set, Tuple
 
-from schemas.asset import AssetType, DigitalAsset, ProductSources, SourceStatus
 from core.source_verifier import verify_source_url
+from schemas.asset import AssetType, DigitalAsset, ProductSources, SourceStatus
 
 # ── File extension classifiers ────────────────────────────────────────────────
 
@@ -132,10 +133,12 @@ def collect_product_assets(
             continue  # Skip non-verified; they won't appear in output
 
         asset_type = _classify_url(url)
-        asset = asset.model_copy(update={
-            "asset_type": asset_type,
-            "resource_url": resource_url,
-        })
+        asset = asset.model_copy(
+            update={
+                "asset_type": asset_type,
+                "resource_url": resource_url,
+            }
+        )
 
         if asset_type == AssetType.PRODUCT_PAGE.value and product_page is None:
             product_page = asset
