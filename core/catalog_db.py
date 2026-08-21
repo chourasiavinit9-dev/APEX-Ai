@@ -7,14 +7,13 @@ Tables:
   - products: enriched records with approval status
   - reviews: audit trail of human decisions
 """
+
 from __future__ import annotations
 
 import json
 import sqlite3
-import time
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -23,6 +22,7 @@ DB_PATH = Path("data/catalog.db")
 
 
 # ── Connection helpers ────────────────────────────────────────────────────────
+
 
 def _ensure_dir():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -126,13 +126,13 @@ def init_db():
 
 # ── Job operations ────────────────────────────────────────────────────────────
 
+
 def create_job(dataset_name: str, total_items: int = 0) -> str:
     """Create a new pipeline job. Returns job ID."""
     job_id = f"job_{uuid.uuid4().hex[:12]}"
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO jobs (id, dataset_name, status, total_items, started_at) "
-            "VALUES (?, ?, 'running', ?, ?)",
+            "INSERT INTO jobs (id, dataset_name, status, total_items, started_at) " "VALUES (?, ?, 'running', ?, ?)",
             (job_id, dataset_name, total_items, _now()),
         )
     return job_id
@@ -140,9 +140,17 @@ def create_job(dataset_name: str, total_items: int = 0) -> str:
 
 def update_job(job_id: str, **kwargs):
     """Update job fields. Pass any column name as keyword argument."""
-    allowed = {"status", "processed_items", "approved_items", "rejected_items",
-               "review_items", "error_message", "cost_estimate", "completed_at",
-               "total_items"}
+    allowed = {
+        "status",
+        "processed_items",
+        "approved_items",
+        "rejected_items",
+        "review_items",
+        "error_message",
+        "cost_estimate",
+        "completed_at",
+        "total_items",
+    }
     updates = {k: v for k, v in kwargs.items() if k in allowed}
     if not updates:
         return
@@ -162,26 +170,28 @@ def get_job(job_id: str) -> Optional[dict]:
 def get_latest_job() -> Optional[dict]:
     """Get the most recent job."""
     with get_conn() as conn:
-        row = conn.execute(
-            "SELECT * FROM jobs ORDER BY created_at DESC LIMIT 1"
-        ).fetchone()
+        row = conn.execute("SELECT * FROM jobs ORDER BY created_at DESC LIMIT 1").fetchone()
         return dict(row) if row else None
 
 
 def get_all_jobs(limit: int = 50) -> List[dict]:
     """Get recent jobs."""
     with get_conn() as conn:
-        rows = conn.execute(
-            "SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?", (limit,)
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
         return [dict(r) for r in rows]
 
 
 # ── Product operations ────────────────────────────────────────────────────────
 
-def insert_product(job_id: str, raw_row: dict, enriched: dict,
-                   confidence: float = 0.0, needs_review: bool = False,
-                   priority_score: int = 0) -> str:
+
+def insert_product(
+    job_id: str,
+    raw_row: dict,
+    enriched: dict,
+    confidence: float = 0.0,
+    needs_review: bool = False,
+    priority_score: int = 0,
+) -> str:
     """Insert an enriched product. Returns product ID."""
     prod_id = f"prod_{uuid.uuid4().hex[:12]}"
     mpn = enriched.get("mpn", raw_row.get("Mfg_Part_Num", ""))
@@ -193,16 +203,23 @@ def insert_product(job_id: str, raw_row: dict, enriched: dict,
             "(id, job_id, mpn, sku, raw_json, enriched_json, status, "
             " confidence, needs_review, priority_score) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            (prod_id, job_id, mpn, sku,
-             json.dumps(raw_row), json.dumps(enriched),
-             status, confidence, int(needs_review), priority_score),
+            (
+                prod_id,
+                job_id,
+                mpn,
+                sku,
+                json.dumps(raw_row),
+                json.dumps(enriched),
+                status,
+                confidence,
+                int(needs_review),
+                priority_score,
+            ),
         )
     return prod_id
 
 
-def update_product_status(product_id: str, status: str,
-                          reviewer_email: str = "",
-                          enriched_json: Optional[str] = None):
+def update_product_status(product_id: str, status: str, reviewer_email: str = "", enriched_json: Optional[str] = None):
     """Update product status (approved/rejected/ready/review)."""
     with get_conn() as conn:
         if enriched_json:
@@ -213,8 +230,7 @@ def update_product_status(product_id: str, status: str,
             )
         else:
             conn.execute(
-                "UPDATE products SET status=?, reviewer_email=?, reviewed_at=?, "
-                "updated_at=? WHERE id=?",
+                "UPDATE products SET status=?, reviewer_email=?, reviewed_at=?, " "updated_at=? WHERE id=?",
                 (status, reviewer_email, _now(), _now(), product_id),
             )
 
@@ -258,14 +274,12 @@ def get_review_queue(job_id: Optional[str] = None, limit: int = 100) -> List[dic
     with get_conn() as conn:
         if job_id:
             rows = conn.execute(
-                "SELECT * FROM products WHERE job_id=? AND status='review' "
-                "ORDER BY priority_score DESC LIMIT ?",
+                "SELECT * FROM products WHERE job_id=? AND status='review' " "ORDER BY priority_score DESC LIMIT ?",
                 (job_id, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT * FROM products WHERE status='review' "
-                "ORDER BY priority_score DESC LIMIT ?",
+                "SELECT * FROM products WHERE status='review' " "ORDER BY priority_score DESC LIMIT ?",
                 (limit,),
             ).fetchall()
         result = []
@@ -309,16 +323,17 @@ def mark_indexed(product_id: str):
 
 # ── Review operations ─────────────────────────────────────────────────────────
 
-def record_review(product_id: str, action: str, reviewer_email: str,
-                  changes: Optional[dict] = None, notes: str = "") -> str:
+
+def record_review(
+    product_id: str, action: str, reviewer_email: str, changes: Optional[dict] = None, notes: str = ""
+) -> str:
     """Record a review decision in the audit trail."""
     review_id = f"rev_{uuid.uuid4().hex[:12]}"
     with get_conn() as conn:
         conn.execute(
             "INSERT INTO reviews (id, product_id, action, reviewer_email, changes_json, notes) "
             "VALUES (?, ?, ?, ?, ?, ?)",
-            (review_id, product_id, action, reviewer_email,
-             json.dumps(changes) if changes else None, notes),
+            (review_id, product_id, action, reviewer_email, json.dumps(changes) if changes else None, notes),
         )
     return review_id
 
@@ -333,34 +348,69 @@ def get_audit_trail(product_id: str) -> List[dict]:
         return [dict(r) for r in rows]
 
 
+def log_duplicate_audit(
+    incoming_sku: str,
+    duplicate_of_sku: str,
+    similarity_score: float,
+    match_reason: str,
+    matched_signals: List[str],
+    alternate_evidence: Optional[dict] = None,
+    tier: str = "hard",
+) -> str:
+    """
+    Write an immutable audit-log entry for a detected duplicate.
+
+    Called by pipeline.run_single() for BOTH hard and possible duplicates.
+    Ensures no duplicate detection event is ever silently discarded — the
+    full context (similarity score, matched signals, alternate evidence URLs)
+    is preserved for human review.
+
+    Returns the review_id of the created entry.
+    """
+    changes = {
+        "duplicate_tier": tier,
+        "duplicate_of_sku": duplicate_of_sku,
+        "similarity_score": round(similarity_score, 4),
+        "matched_signals": matched_signals,
+        "alternate_evidence": alternate_evidence or {},
+    }
+    notes = (
+        f"[AUTO] {tier.upper()} duplicate of {duplicate_of_sku} "
+        f"(sim={similarity_score:.3f}, signals={matched_signals}). "
+        f"{match_reason}"
+    )
+    return record_review(
+        product_id=incoming_sku,
+        action=f"duplicate_detected_{tier}",
+        reviewer_email="system@apex-pipeline",
+        changes=changes,
+        notes=notes,
+    )
+
+
 # ── Metrics ───────────────────────────────────────────────────────────────────
+
 
 def compute_job_metrics(job_id: str) -> dict:
     """Compute live metrics for a job."""
     with get_conn() as conn:
-        total = conn.execute(
-            "SELECT COUNT(*) FROM products WHERE job_id=?", (job_id,)
-        ).fetchone()[0]
+        total = conn.execute("SELECT COUNT(*) FROM products WHERE job_id=?", (job_id,)).fetchone()[0]
         approved = conn.execute(
             "SELECT COUNT(*) FROM products WHERE job_id=? AND status='approved'", (job_id,)
         ).fetchone()[0]
         rejected = conn.execute(
             "SELECT COUNT(*) FROM products WHERE job_id=? AND status='rejected'", (job_id,)
         ).fetchone()[0]
-        review = conn.execute(
-            "SELECT COUNT(*) FROM products WHERE job_id=? AND status='review'", (job_id,)
-        ).fetchone()[0]
-        ready = conn.execute(
-            "SELECT COUNT(*) FROM products WHERE job_id=? AND status='ready'", (job_id,)
-        ).fetchone()[0]
+        review = conn.execute("SELECT COUNT(*) FROM products WHERE job_id=? AND status='review'", (job_id,)).fetchone()[
+            0
+        ]
+        ready = conn.execute("SELECT COUNT(*) FROM products WHERE job_id=? AND status='ready'", (job_id,)).fetchone()[0]
         indexed = conn.execute(
             "SELECT COUNT(*) FROM products WHERE job_id=? AND indexed_in_chroma=1", (job_id,)
         ).fetchone()[0]
 
         # Average confidence
-        avg_conf_row = conn.execute(
-            "SELECT AVG(confidence) FROM products WHERE job_id=?", (job_id,)
-        ).fetchone()
+        avg_conf_row = conn.execute("SELECT AVG(confidence) FROM products WHERE job_id=?", (job_id,)).fetchone()
         avg_confidence = avg_conf_row[0] or 0.0
 
     return {
@@ -378,16 +428,10 @@ def compute_global_metrics() -> dict:
     """Compute metrics across all jobs."""
     with get_conn() as conn:
         total = conn.execute("SELECT COUNT(*) FROM products").fetchone()[0]
-        approved = conn.execute(
-            "SELECT COUNT(*) FROM products WHERE status='approved'"
-        ).fetchone()[0]
-        review = conn.execute(
-            "SELECT COUNT(*) FROM products WHERE status='review'"
-        ).fetchone()[0]
+        approved = conn.execute("SELECT COUNT(*) FROM products WHERE status='approved'").fetchone()[0]
+        review = conn.execute("SELECT COUNT(*) FROM products WHERE status='review'").fetchone()[0]
         jobs_count = conn.execute("SELECT COUNT(*) FROM jobs").fetchone()[0]
-        indexed = conn.execute(
-            "SELECT COUNT(*) FROM products WHERE indexed_in_chroma=1"
-        ).fetchone()[0]
+        indexed = conn.execute("SELECT COUNT(*) FROM products WHERE indexed_in_chroma=1").fetchone()[0]
     return {
         "total_products": total,
         "approved": approved,
@@ -399,11 +443,13 @@ def compute_global_metrics() -> dict:
 
 # ── Helpers ────────────────────────────────────────────────────────────────────────────────
 
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
 # ── Asset Sources ─────────────────────────────────────────────────────────────────────
+
 
 def upsert_product_sources(sku: str, product_sources) -> None:
     """
@@ -475,9 +521,7 @@ def get_asset_coverage_stats() -> Dict[str, Any]:
         Dict with verified counts, missing assets, and avg coverage.
     """
     with get_conn() as conn:
-        total_skus = conn.execute(
-            "SELECT COUNT(DISTINCT sku) FROM asset_sources"
-        ).fetchone()[0]
+        total_skus = conn.execute("SELECT COUNT(DISTINCT sku) FROM asset_sources").fetchone()[0]
         verified_pages = conn.execute(
             "SELECT COUNT(*) FROM asset_sources WHERE asset_type='product_page' AND status='verified'"
         ).fetchone()[0]
@@ -487,9 +531,7 @@ def get_asset_coverage_stats() -> Dict[str, Any]:
         missing_review = conn.execute(
             "SELECT COUNT(DISTINCT sku) FROM asset_sources WHERE needs_human_review=1"
         ).fetchone()[0]
-        avg_coverage = conn.execute(
-            "SELECT AVG(source_coverage_score) FROM asset_sources"
-        ).fetchone()[0] or 0.0
+        avg_coverage = conn.execute("SELECT AVG(source_coverage_score) FROM asset_sources").fetchone()[0] or 0.0
     return {
         "total_skus_with_assets": total_skus,
         "verified_product_pages": verified_pages,

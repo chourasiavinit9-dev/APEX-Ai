@@ -348,6 +348,32 @@
   .asset-status.verified { background: var(--green-bg); color: var(--green); }
   .asset-status.review { background: #2d1f00; color: var(--yellow); }
   .asset-status.rejected { background: #3d1414; color: var(--red); }
+  .asset-status.merged { background: #1a1a3e; color: #a78bfa; }
+
+  /* Provenance source-type badges shown in evidence drawer */
+  .src-badge {
+    display: inline-block; font-size: 9px; font-weight: 700; padding: 2px 6px;
+    border-radius: 3px; text-transform: uppercase; letter-spacing: .4px;
+  }
+  .src-extracted   { background: rgba(74,222,128,.15); color: #4ade80; }
+  .src-inferred    { background: rgba(251,191,36,.12); color: #fbbf24; }
+  .src-web         { background: rgba(56,189,248,.12); color: #38bdf8; }
+  .src-merged      { background: rgba(167,139,250,.15); color: #a78bfa; }
+  .src-human       { background: rgba(249,115,22,.12); color: #f97316; }
+  .src-rule        { background: rgba(156,163,175,.1); color: #9ca3af; }
+
+  /* Dedup evidence box shown when duplicate detected */
+  .dedup-box {
+    background: linear-gradient(135deg, #1a1a3e 0%, #16162c 100%);
+    border: 1px solid #4c3d8f; border-radius: 10px; padding: 14px; margin-bottom: 12px;
+  }
+  .dedup-box .dedup-title { font-size: 12px; font-weight: 700; color: #a78bfa; margin-bottom: 8px; }
+  .dedup-signal {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: rgba(167,139,250,.15); color: #a78bfa;
+    font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px;
+    margin: 2px 2px 2px 0;
+  }
 
   /* Toast */
   .toast {
@@ -785,6 +811,42 @@
         Audit Status: <span style="color:var(--green)">✓ Passed LOV Bounding</span>
       </div>
     </div>
+
+    <!-- Dedup Evidence Section (shown when duplicate detected) -->
+    <div class="dedup-box" id="modal-dedup-box" style="display:none;margin-top:14px">
+      <div class="dedup-title">🔀 Duplicate Detection Record</div>
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:8px" id="modal-dedup-reason"></div>
+      <div style="margin-bottom:8px">
+        <span style="font-size:11px;color:var(--muted)">Duplicate of SKU:</span>
+        <span style="font-size:12px;font-weight:600;color:#a78bfa;margin-left:6px" id="modal-dedup-sku"></span>
+      </div>
+      <div style="margin-bottom:8px">
+        <span style="font-size:11px;color:var(--muted)">Matched signals:</span>
+        <span id="modal-dedup-signals" style="margin-left:4px"></span>
+      </div>
+      <div id="modal-dedup-alt-evidence"></div>
+    </div>
+
+    <!-- Provenance Field-Sources Legend — always shown -->
+    <div class="asset-box" style="margin-top:14px">
+      <div class="asset-head">
+        <span class="asset-name">Provenance — Field Sources</span>
+        <span class="asset-status merged">Evidence Drawer</span>
+      </div>
+      <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">
+        <span class="src-badge src-extracted">extracted</span>
+        <span class="src-badge src-inferred">inferred</span>
+        <span class="src-badge src-web">web_enriched</span>
+        <span class="src-badge src-merged">merged_duplicate</span>
+        <span class="src-badge src-human">human_corrected</span>
+        <span class="src-badge src-rule">rule_default</span>
+      </div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:8px">
+        <strong style="color:#a78bfa">merged_duplicate</strong> — field value filled from a
+        deduplicated secondary record; alternate manufacturer evidence preserved; human review recommended.
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -881,6 +943,27 @@ const rows = [
     pdfUrl: 'Not Found',
     imgStatus: 'Missing — Review Req',
     coverage: '40% (0.40)'
+  },
+  {
+    mpn: 'CPLG-38-BR-DUP',
+    mfr: 'Mueller Industries',
+    brand: 'Mueller Industries®',
+    dept: 'Plumbing',
+    status: 'review',
+    pageUrl: 'https://www.muellerindustries.com/products/couplings/CPLG-38-BR',
+    pdfUrl: 'https://www.muellerindustries.com/datasheets/CPLG-38-BR.pdf',
+    imgStatus: 'Duplicate — Review Req',
+    coverage: '0% (0.00)',
+    dedup: {
+      reason: 'Exact normalized manufacturer + MPN match (sim=0.997, signals=[exact_mpn_mfr])',
+      duplicateOfSku: 'CPLG-38-BR',
+      signals: ['exact_mpn_mfr'],
+      alternateEvidence: {
+        page_url: 'https://www.supplyhouse.com/Mueller-CPLG-38-BR',
+        alternate_source_excerpt: '3/8 in. Brass Coupling — NSF61 certified, lead-free',
+        alternate_attributes: { certification: 'NSF61', finish: 'Lead-free brass' }
+      }
+    }
   }
 ];
 
@@ -940,6 +1023,15 @@ function renderProducts() {
 }
 
 // ── MODAL DRAWER ────────────────────────────────────────────────────────────
+const SOURCE_CSS = {
+  extracted: 'src-extracted',
+  inferred: 'src-inferred',
+  web_enriched: 'src-web',
+  merged_duplicate: 'src-merged',
+  human_corrected: 'src-human',
+  rule_default: 'src-rule',
+};
+
 function openAssetDrawer(mpn) {
   const item = rows.find(r => r.mpn === mpn) || rows[0];
   document.getElementById('modal-mpn').textContent = item.mpn;
@@ -947,6 +1039,44 @@ function openAssetDrawer(mpn) {
   document.getElementById('modal-page-url').textContent = item.pageUrl;
   document.getElementById('modal-datasheet-url').textContent = item.pdfUrl;
   document.getElementById('modal-coverage').textContent = item.coverage;
+
+  // ── Dedup evidence section ────────────────────────────────────────────────
+  const dedupBox = document.getElementById('modal-dedup-box');
+  if (item.dedup) {
+    const d = item.dedup;
+    dedupBox.style.display = 'block';
+    document.getElementById('modal-dedup-reason').textContent = d.reason || '';
+    document.getElementById('modal-dedup-sku').textContent = d.duplicateOfSku || '—';
+
+    // Render matched signal chips
+    const sigsEl = document.getElementById('modal-dedup-signals');
+    sigsEl.innerHTML = (d.signals || []).map(s =>
+      `<span class="dedup-signal">🔍 ${s}</span>`
+    ).join('') || '<span style="color:var(--muted);font-size:11px">none</span>';
+
+    // Render alternate evidence (source URLs, attributes)
+    const altEl = document.getElementById('modal-dedup-alt-evidence');
+    const ae = d.alternateEvidence || {};
+    let aeHtml = '';
+    if (ae.pageUrl || ae.page_url) {
+      aeHtml += `<div style="font-size:11px;color:var(--muted);margin-top:6px">Alt page URL: <span style="color:var(--cyan)">${ae.pageUrl || ae.page_url}</span></div>`;
+    }
+    if (ae.datasheetUrl || ae.datasheet_url) {
+      aeHtml += `<div style="font-size:11px;color:var(--muted)">Alt datasheet: <span style="color:var(--cyan)">${ae.datasheetUrl || ae.datasheet_url}</span></div>`;
+    }
+    if (ae.alternate_source_excerpt) {
+      aeHtml += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Alternate evidence: <em style="color:var(--text)">"${ae.alternate_source_excerpt}"</em></div>`;
+    }
+    const altAttrs = ae.alternate_attributes || {};
+    if (Object.keys(altAttrs).length > 0) {
+      const attrStr = Object.entries(altAttrs).map(([k,v]) => `${k}: ${v}`).join(' · ');
+      aeHtml += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Alt attrs: <span style="color:#a78bfa">${attrStr}</span></div>`;
+    }
+    altEl.innerHTML = aeHtml || '<div style="font-size:11px;color:var(--muted)">No alternate evidence captured</div>';
+  } else {
+    dedupBox.style.display = 'none';
+  }
+
   document.getElementById('drawer-overlay').classList.add('open');
 }
 

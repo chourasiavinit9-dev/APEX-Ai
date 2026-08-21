@@ -30,6 +30,7 @@ SOURCE_INFERRED = "inferred"
 SOURCE_WEB_ENRICHED = "web_enriched"
 SOURCE_HUMAN_CORRECTED = "human_corrected"
 SOURCE_RULE_DEFAULT = "rule_default"
+SOURCE_MERGED_DUPLICATE = "merged_duplicate"  # field filled from a deduplicated secondary record
 
 # ── Knowledge graph edge types ────────────────────────────────────────────────
 EDGE_COMPATIBLE = "compatible_with"

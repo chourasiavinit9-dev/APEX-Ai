@@ -9,6 +9,7 @@ All thresholds from core/constants.py.
 from __future__ import annotations
 
 import asyncio
+import logging
 from pathlib import Path
 
 import anthropic
@@ -17,11 +18,10 @@ from rich.table import Table
 
 from .constants import (
     CONFIDENCE_WEB_SEARCH_THRESHOLD,
-    DEDUP_HARD_THRESHOLD,
-    DEDUP_SOFT_THRESHOLD,
     SUPPORTED_EXTENSIONS,
 )
-from .duplicate_detector import is_duplicate
+from .catalog_db import log_duplicate_audit
+from .duplicate_detector import check_duplicate
 from .enricher import enrich
 from .exporter import export_batch_csv, export_batch_json, export_batch_jsonld
 from .extractor import build_client, classify_product_type, extract, normalize_units
@@ -31,6 +31,7 @@ from .validator import validate
 from .web_enricher import apply_web_enrichment_to_product, web_enrich
 
 console = Console()
+logger = logging.getLogger(__name__)
 ASYNC_CONCURRENCY = 10  # max parallel Claude calls
 
 
@@ -44,7 +45,7 @@ def run_single(
 
     Step order (UniHack guide):
       1. Ingest (done by caller via ingest_file)
-      2. De-duplication  ← is_duplicate() called here
+      2. De-duplication  ← check_duplicate() called here
       3. Taxonomy        ← classify_product_type()
       4. Attribute extraction ← extract()
       5. Enrichment      ← enrich() + web_enrich()
@@ -55,50 +56,99 @@ def run_single(
     if client is None:
         client = build_client()
 
-    # ── Step 2: De-duplication ────────────────────────────────────────────────
-    # Build a minimal stub so is_duplicate can embed the raw document text.
+    # ── Step 2: De-duplication ──────────────────────────────────────────────
+    # Minimal stub from ingested document for the dedup check.
+    # Part number and manufacturer are extracted after taxonomy, but the
+    # duplicate check runs early on raw metadata to guard before any LLM cost.
     raw_stub = {
         "name": getattr(doc, "title", "") or "",
+        "part_number": getattr(doc, "part_number", "") or "",
+        "manufacturer": getattr(doc, "manufacturer", "") or "",
         "product_type": product_type or "",
         "attributes": {},
     }
-    is_dup, matched, sim_score = is_duplicate(raw_stub, threshold=DEDUP_HARD_THRESHOLD)
-    if is_dup:
+    dedup = check_duplicate(raw_stub)
+    incoming_sku = raw_stub["part_number"] or raw_stub["name"][:32] or "unknown"
+
+    if dedup.is_hard_duplicate:
+        # Write immutable audit-log entry — never silently discard
+        try:
+            log_duplicate_audit(
+                incoming_sku=incoming_sku,
+                duplicate_of_sku=dedup.duplicate_of_sku or "",
+                similarity_score=dedup.similarity_score,
+                match_reason=dedup.match_reason,
+                matched_signals=dedup.matched_signals,
+                alternate_evidence=dedup.alternate_evidence,
+                tier="hard",
+            )
+        except Exception as _e:
+            logger.warning("audit log write failed: %s", _e)
+
         console.log(
-            f"[yellow]⚠ Duplicate skipped[/] — similarity {sim_score:.3f} "
-            f"≥ {DEDUP_HARD_THRESHOLD} vs {matched.get('product_id', 'unknown')}"
+            f"[yellow]⚠ Hard duplicate[/] {incoming_sku} → {dedup.duplicate_of_sku} "
+            f"(signals={dedup.matched_signals}, sim={dedup.similarity_score:.3f}) "
+            f"— audit log written, pipeline skipped"
         )
-        # Return a minimal result so batch processing can still log it
+        # Return FULL record — not empty — preserving alternate evidence
         return {
             "name": raw_stub["name"],
+            "part_number": raw_stub["part_number"],
+            "manufacturer": raw_stub["manufacturer"],
             "product_type": product_type or "",
             "attributes": {},
-            "provenance": {"confidence": 0.0},
+            "provenance": {
+                "confidence": 0.0,
+                "field_sources": {},
+                "alternate_evidence": dedup.alternate_evidence,
+                "merged_from": dedup.duplicate_of_sku,
+            },
             "validation": {
-                "issues": [f"Skipped — hard duplicate (similarity={sim_score:.3f})"],
+                "issues": [dedup.match_reason],
                 "passed_rules": False,
-                "needs_human_review": False,
+                "needs_human_review": True,  # always route to human for review
                 "duplicate_status": "hard_duplicate",
-                "duplicate_of": matched.get("product_id") if matched else None,
-                "duplicate_similarity": sim_score,
+                "duplicate_of_sku": dedup.duplicate_of_sku,
+                "duplicate_similarity": dedup.similarity_score,
+                "duplicate_signals": dedup.matched_signals,
             },
         }
 
-    if client is None:
-        client = build_client()
     if not product_type:
         product_type = classify_product_type(doc, client=client)
     product = extract(doc, product_type, client=client)
     product = normalize_units(product)
 
-    # ── Soft-duplicate flag (0.85 ≤ sim < 0.95) ──────────────────────────────
-    if sim_score >= DEDUP_SOFT_THRESHOLD:
+    # ── Possible duplicate flag: write audit log + route to human review ─────
+    if dedup.is_possible_duplicate:
+        try:
+            log_duplicate_audit(
+                incoming_sku=incoming_sku,
+                duplicate_of_sku=dedup.duplicate_of_sku or "",
+                similarity_score=dedup.similarity_score,
+                match_reason=dedup.match_reason,
+                matched_signals=dedup.matched_signals,
+                alternate_evidence=dedup.alternate_evidence,
+                tier="possible",
+            )
+        except Exception as _e:
+            logger.warning("audit log write failed: %s", _e)
+
         val = product.setdefault("validation", {})
         val["possible_duplicate"] = True
-        val["duplicate_similarity"] = sim_score
-        issues = val.setdefault("issues", [])
-        issues.append(f"Possible duplicate detected (similarity={sim_score:.3f}) " "— human review recommended")
+        val["duplicate_similarity"] = dedup.similarity_score
+        val["duplicate_of_sku"] = dedup.duplicate_of_sku
+        val["duplicate_signals"] = dedup.matched_signals
         val["needs_human_review"] = True
+        val.setdefault("issues", []).append(
+            f"Possible duplicate of {dedup.duplicate_of_sku} "
+            f"(sim={dedup.similarity_score:.3f}, signals={dedup.matched_signals}) "
+            f"— human review required"
+        )
+        # Attach alternate evidence to provenance so it shows in the evidence drawer
+        if dedup.alternate_evidence:
+            prov = product.setdefault("provenance", {})
+            prov["alternate_evidence"] = dedup.alternate_evidence
 
     if enrich_enabled:
         product = enrich(product)
