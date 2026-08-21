@@ -7,7 +7,7 @@
 [![Python](https://img.shields.io/badge/python-3.9%2B-3b82f6)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Cost](https://img.shields.io/badge/cost-%242%2F1K%20rows-6366f1)](COST_MODEL.md)
-[![Security](https://img.shields.io/badge/security-10%20layers-22c55e)](SECURITY.md)
+[![Security](https://img.shields.io/badge/security-JWT%2C%20bcrypt%2C%20rate%20limiting-22c55e)](SECURITY.md)
 
 > AI-powered product intelligence for industrial commerce — local-first, evidence-driven, demonstrably cost-effective at ~$2/1,000 SKUs.
 
@@ -88,6 +88,7 @@ APEX is a modular enrichment pipeline that transforms raw catalogue rows into co
 | Persistence | SQLite (stdlib) | Free |
 | Knowledge graph | NetworkX | Free |
 | Dashboard | HTML5 / Vanilla JS (index.html + run_ui.py) | Free |
+| Sourcing rule enforcement | Marketplace URLs (Amazon, Grainger, eBay, Walmart) blocked at `FieldProvenanceSchema.source_url` validation layer per Unilog sourcing rules | Free |
 
 **Total: ~$2/1,000 rows (vs ~$14 for a generic all-LLM pipeline)**
 
@@ -205,7 +206,7 @@ Upload CSV  →  Run Pipeline  →  View Products  →  Open Evidence Drawer
 
 | Format | Description |
 |---|---|
-| **252-column Unilog CSV** | Standard delivery format with all attribute columns |
+| **Unilog Delivery CSV** | 15 validated Unilog delivery fields, expandable to the full 252-column format |
 | **Provenance JSON** | Full enrichment result with source evidence per field |
 | **JSON-LD** | Schema.org/Product linked data format |
 

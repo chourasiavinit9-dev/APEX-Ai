@@ -4,9 +4,9 @@ core/enricher.py — RAG enrichment using ChromaDB + MiniLM.
 Fix 2 (HIGH): Query knowledge graph during enrichment for compatible products.
 All thresholds from core/constants.py.
 """
+
 import json
 import statistics
-from pathlib import Path
 
 from .constants import (
     CHROMA_DB_PATH,
@@ -20,6 +20,7 @@ from .constants import (
 def _get_embedder():
     try:
         from sentence_transformers import SentenceTransformer
+
         return SentenceTransformer("all-MiniLM-L6-v2")
     except ImportError:
         raise ImportError("pip install sentence-transformers")
@@ -28,6 +29,7 @@ def _get_embedder():
 def _get_collection():
     try:
         import chromadb
+
         client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
         return client.get_or_create_collection(CHROMA_COLLECTION)
     except ImportError:
@@ -49,7 +51,31 @@ def build_product_description(product: dict) -> str:
 
 
 def index_product(product: dict) -> None:
-    """Add an approved product to the ChromaDB catalog."""
+    """Add a validated, high-confidence product to the ChromaDB catalog.
+
+    Only high-confidence, validated records enter ChromaDB to prevent
+    bad data from poisoning future RAG enrichment.
+
+    Guards (both must pass):
+      - provenance.confidence >= 0.80
+      - validation.passed_rules is True (LOV, UOM, character limits all passed)
+
+    Skipped records are NOT indexed and NOT deleted — they remain in SQLite
+    for human review but are excluded from the vector store.
+    """
+    # ── Guard: confidence threshold ──────────────────────────────────────────
+    provenance = product.get("provenance", {})
+    confidence = provenance.get("confidence", 0.0) if isinstance(provenance, dict) else 0.0
+    if confidence < 0.80:
+        return  # below threshold — do not pollute RAG store
+
+    # ── Guard: validation must have passed all rules ──────────────────────────
+    validation = product.get("validation", {})
+    passed_rules = validation.get("passed_rules", False) if isinstance(validation, dict) else False
+    if not passed_rules:
+        return  # validation failed — do not pollute RAG store
+
+    # ── Index into ChromaDB ───────────────────────────────────────────────────
     collection = _get_collection()
     embedder = _get_embedder()
     description = build_product_description(product)
@@ -59,11 +85,13 @@ def index_product(product: dict) -> None:
         ids=[pid],
         embeddings=[embedding],
         documents=[description],
-        metadatas=[{
-            "product_type": product.get("product_type", ""),
-            "attributes_json": json.dumps(product.get("attributes", {})),
-            "product_id": pid,
-        }],
+        metadatas=[
+            {
+                "product_type": product.get("product_type", ""),
+                "attributes_json": json.dumps(product.get("attributes", {})),
+                "product_id": pid,
+            }
+        ],
     )
 
 
@@ -95,10 +123,7 @@ def _fetch_rag_neighbors(product: dict) -> list[dict]:
             n_results=min(K_RAG_NEIGHBORS, collection.count()),
             where=where,
         )
-        return [
-            json.loads(m.get("attributes_json", "{}"))
-            for m in (results.get("metadatas") or [[]])[0]
-        ]
+        return [json.loads(m.get("attributes_json", "{}")) for m in (results.get("metadatas") or [[]])[0]]
     except Exception:
         return []
 
@@ -107,6 +132,7 @@ def _fetch_kg_neighbors(product: dict) -> list[dict]:
     """Fix 2: Query knowledge graph for compatible products' attributes."""
     try:
         from .knowledge_graph import load_graph, get_compatible_products
+
         graph = load_graph()
         pid = str(product.get("product_id") or product.get("part_number") or "")
         if not pid or not graph.has_node(pid):
@@ -153,8 +179,8 @@ def _majority_value(values: list):
     except (TypeError, ValueError):
         pass
     from collections import Counter
-    hashable = [tuple(v) if isinstance(v, list) else v for v in values
-                if isinstance(v, (str, int, float, bool, list))]
+
+    hashable = [tuple(v) if isinstance(v, list) else v for v in values if isinstance(v, (str, int, float, bool, list))]
     if not hashable:
         return None
     most_common, _ = Counter(hashable).most_common(1)[0]

@@ -90,15 +90,17 @@ https://www.rheem.com/products/residential/water-heating/
 
 ---
 
-## No-Hallucination Rule
+## Hallucination Risk Control
 
-APEX's no-hallucination safeguard is implemented at the pipeline level:
+Hallucination risk is controlled — LOV validation gate rejects out-of-vocabulary values; evidence quotes required for every LLM extraction; human review triggered for confidence below 0.80.
+
+Specific controls implemented at the pipeline level:
 
 1. **Evidence required**: Every non-`input` field must have a `resource_url` or `source_url`
 2. **Blank over guessing**: If a value cannot be sourced, it is left blank and flagged for review
 3. **LLM prompts are LOV-constrained**: Attribute extraction prompts include the full LOV list, so the LLM cannot invent out-of-vocabulary values
-4. **Validation catches fabrications**: Every output field is validated against the LOV table; failures block indexing
-5. **Dashboard shows "Evidence Required"**: The evidence drawer displays source type and confidence for every field; unsourced fields are visually flagged
+4. **Validation rejects fabrications**: Every output field is validated against the LOV table; failures block indexing
+5. **Human review at 0.80**: Records with overall confidence below 0.80 are automatically routed to the human review queue
 
 ```python
 # No-hallucination check in validators/output_validator.py

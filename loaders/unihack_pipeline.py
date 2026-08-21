@@ -68,7 +68,7 @@ def enrich_row(
     if client is None:
         from core.llm_client import get_client
 
-        client = get_client()  # handles OpenRouter and Anthropic automatically
+        client = get_client()  # Anthropic primary; OpenRouter fallback if OPENROUTER_API_KEY set
 
     record: dict = {"_raw": raw_row.copy(), "_pipeline_steps": []}
 

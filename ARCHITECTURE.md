@@ -45,7 +45,8 @@ Raw Input Row (CSV)
 │  core/web_enricher.py → enrich_from_web()                        │
 │    Triggers only when: len(attributes) < 3                        │
 │    Source rules: manufacturer.com only, no marketplaces           │
-│    No-hallucination: Evidence required or blank                   │
+│    Hallucination risk controlled: LOV gate + evidence required    │
+│    Human review triggered for confidence below 0.80               │
 └────────────────────────────────┬──────────────────────────────────┘
                                  │
                                  ▼
@@ -121,7 +122,7 @@ Raw Input Row (CSV)
 - **`duplicate_finder.py`**: MPN normalization + ChromaDB vector similarity
 - **`enricher.py`**: ChromaDB indexing and RAG retrieval
 - **`knowledge_graph.py`**: NetworkX product relationship graph (compatibility, replacements)
-- **`exporter.py`**: 252-column CSV, JSON, JSON-LD output
+- **`exporter.py`**: 15 validated Unilog delivery fields; expandable to full 252-column format; JSON and JSON-LD
 
 ### `security/` — Auth Layer
 - **`middleware.py`**: JWT (PyJWT or stdlib HMAC fallback), PBKDF2 passwords, rate limiting, CSRF, XSS sanitization, bot detection

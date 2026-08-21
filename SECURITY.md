@@ -23,6 +23,19 @@ We will respond within 48 hours and aim to patch within 7 days.
 
 ## Security Architecture
 
+**Controls implemented:**
+- JWT HS256 auth
+- bcrypt password hashing
+- Rate limiting (5 attempts / 15 min per IP and email)
+- CSRF HMAC tokens
+- XSS input sanitization
+- Honeypot bot detection
+- Security headers (CSP, HSTS, X-Frame-Options) — set in `run_ui.py` response headers
+- Session revocation on explicit logout
+- Audit log (immutable — every review action written to `reviews` SQLite table)
+
+> **Note**: PostgreSQL Row-Level Security is documented as a production upgrade path; the current SQLite implementation enforces access via application-layer auth, not DB-level RLS.
+
 ### Authentication
 - **JWT HS256** tokens with 60-minute expiry
 - **PBKDF2-SHA256** password hashing (260,000 iterations) — falls back from bcrypt gracefully
@@ -43,7 +56,7 @@ We will respond within 48 hours and aim to patch within 7 days.
 
 ### Data Security
 - **Manufacturer-only sourcing**: Amazon, eBay, Grainger, and all distributors are blocked
-- **No-hallucination rule**: If evidence is absent, field is blank — LLM cannot fabricate
+- **Hallucination risk control**: Hallucination risk is controlled — LOV validation gate rejects out-of-vocabulary values; evidence quotes required for every LLM extraction; human review triggered for confidence below 0.80
 - **LOV-constrained prompts**: Attribute extraction is bounded by approved vocabulary
 - **Audit trail**: Every review action is written immutably to `reviews` SQLite table
 - **ChromaDB indexing**: Only approved records are indexed; rejected records are excluded

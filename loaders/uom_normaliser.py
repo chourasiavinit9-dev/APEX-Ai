@@ -11,11 +11,32 @@ Sources:
   - Unilog_Master_UOM_Standards_Abbreviations_and_Terms.xlsx
   - Decimal_Fraction.xlsx
 """
-from __future__ import annotations
-import re
-from functools import lru_cache
 
-from loaders.data_loader import load_uom_standards, load_fraction_lookup
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field
+
+from loaders.data_loader import load_fraction_lookup, load_uom_standards
+
+# ── Ambiguity flag ────────────────────────────────────────────────────────────
+
+
+@dataclass
+class AmbiguousUOM:
+    """Returned when a value cannot be safely normalised to a single unit."""
+
+    raw_value: str
+    is_ambiguous: bool = True
+    reason: str = ""
+    suggested_alternatives: list = field(default_factory=list)
+
+    def __str__(self) -> str:
+        return self.raw_value  # preserve original for downstream handlers
+
+
+# Regex: detects values ending with "#" (e.g. "150#", "300#")
+_POUND_SIGN_RE = re.compile(r"^(\d+(?:\.\d+)?)\s*#$")
 
 # Regex: matches "24in", "24IN", "24 inches", "24-inch", "3.5in"
 _NUM_UNIT_RE = re.compile(
@@ -40,12 +61,32 @@ def normalise_uom(text: str) -> str:
     return result
 
 
-def normalise_single_value(value: str, unit_hint: str = "") -> str:
+def normalise_single_value(value: str, unit_hint: str = "") -> str | AmbiguousUOM:
     """
     Normalise a single attribute value like "24in", "3.5 inches", "1/2".
     If unit_hint given (e.g. "in"), apply it to bare numbers.
+
+    Returns AmbiguousUOM (not a string) for values that cannot be safely resolved
+    to a single unit without category/material context — e.g. "150#" which could
+    be ANSI Class 150 pressure rating or a weight in pounds.
+    Callers MUST check isinstance(result, AmbiguousUOM) and route to human review.
     """
     stripped = str(value).strip()
+
+    # ── Guard: "150#" and similar — ANSI Class vs weight ambiguity ──────────
+    pound_match = _POUND_SIGN_RE.match(stripped)
+    if pound_match:
+        num = pound_match.group(1)
+        return AmbiguousUOM(
+            raw_value=stripped,
+            is_ambiguous=True,
+            reason=(
+                f"Could be ANSI Class {num} pressure rating or weight "
+                "— category and material context required to resolve"
+            ),
+            suggested_alternatives=[f"{num} lb", f"ANSI Class {num}"],
+        )
+
     # Try direct UOM map lookup first
     uom_map = load_uom_standards()
     if stripped.lower() in uom_map:
@@ -71,8 +112,7 @@ def decimal_to_fraction(decimal: float) -> str | None:
     return fractions.get(rounded)
 
 
-def format_compound_dimension(whole: int, decimal_part: float,
-                               unit: str = "in") -> str:
+def format_compound_dimension(whole: int, decimal_part: float, unit: str = "in") -> str:
     """
     Format a compound dimension like 50.25 in → "50-1/4 in".
     e.g. format_compound_dimension(50, 0.25, "in") → "50-1/4 in"
@@ -123,7 +163,7 @@ def _convert_decimal_inches(text: str) -> str:
     pattern = re.compile(r"(\d+\.\d+)\s+in\b", re.IGNORECASE)
 
     def replace_decimal(m: re.Match) -> str:
-        return convert_inch_value(m.group(1)) 
+        return convert_inch_value(m.group(1))
 
     return pattern.sub(replace_decimal, text)
 
