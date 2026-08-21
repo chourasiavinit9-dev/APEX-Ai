@@ -68,14 +68,8 @@ bandit-report.json
 *.log
 logs/
 
-# Local reference & prompt documents (local only)
-TEAM_PROMPT.md
+# Local scratch documents (not for submission)
 UNIHACK_GAP_ANALYSIS.md
-JUDGE_EVALUATION.md
-CODE_QUALITY.md
-REQUIREMENTS.md
-score_check.py
-ui/app.py
 ui/unihack_app.py
 .idx/
 
