@@ -627,19 +627,10 @@
 
   <!-- ══ PIPELINE PAGE ══ -->
   <div class="content page" id="page-pipeline">
-    <div style="max-width:700px">
+    <div style="max-width:760px">
+
+      <!-- Live Process Box -->
       <div class="card" style="margin-bottom:20px">
-        <div class="card-title" style="margin-bottom:16px">Upload & Verify Dataset</div>
-        <div class="upload-zone" onclick="document.getElementById('file-input').click()">
-          <div class="upload-icon">📂</div>
-          <div class="upload-title">Drop CSV file here or click to browse</div>
-          <div class="upload-sub">Supports: CSV, XLSX · Max 50MB</div>
-          <input type="file" id="file-input" accept=".csv,.xlsx" style="display:none" onchange="handleFile(this)">
-        </div>
-        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-          <button class="run-btn" style="flex:1;justify-content:center" onclick="startPipelineDemo()">▶ Run Enrichment & Source Verification</button>
-          <button class="dl-btn" onclick="toast('Loaded sample catalog dataset with official sources')">Use Sample Dataset</button>
-        </div>
       </div>
       <div class="card" id="progress-card" style="display:none">
         <div class="card-title" style="margin-bottom:16px">⚡ Pipeline & Source Verification Active…</div>
@@ -1414,45 +1405,94 @@ function filterProducts(q) {
 
 // ── PIPELINE DEMO ────────────────────────────────────────────────────────────
 function handleFile(input) {
-  if(input.files.length) toast('File loaded: '+input.files[0].name+' · Click Run Enrichment');
+  if(input.files.length) toast('File loaded: '+input.files[0].name+' · Click Run Live Pipeline');
 }
 
-function startPipelineDemo() {
+function fillSample() {
+  document.getElementById('live-input').value = 'Mueller Industries 3/8 in Brass Coupling 150# NPT CPLG-38-BR';
+  toast('Sample row loaded — click Run Live Pipeline');
+}
+
+function startPipelineDemo() { nav_direct('pipeline'); }
+
+async function runLivePipeline() {
+  const text = (document.getElementById('live-input').value || '').trim();
+  if (!text) { toast('Please enter a product description or MPN'); return; }
+
+  document.getElementById('pipeline-spinner').style.display = 'block';
+  document.getElementById('live-result').style.display = 'none';
+  document.getElementById('pipeline-error').style.display = 'none';
   nav_direct('pipeline');
-  const card = document.getElementById('progress-card');
-  card.style.display='block';
-  const steps = [
-    {name:'Placeholder Filter',       time:200},
-    {name:'Brand Normalization',      time:350},
-    {name:'UOM Normalization',        time:250},
-    {name:'Taxonomy Classify',        time:500},
-    {name:'Attribute Extract',        time:700},
-    {name:'Digital Asset & Sources',  time:400},
-    {name:'LOV & Conflict Detect',    time:300},
-  ];
-  const container = document.getElementById('progress-steps');
-  container.innerHTML = steps.map(s=>`
-    <div class="prog-row">
-      <div class="prog-label"><span>${s.name}</span><span id="pct-${s.name.replace(/ /g,'_')}">0%</span></div>
-      <div class="prog-track"><div class="prog-fill" id="bar-${s.name.replace(/ /g,'_')}" style="width:0%"></div></div>
-    </div>`).join('');
-  let delay = 0;
-  steps.forEach(s => {
-    const id = s.name.replace(/ /g,'_');
-    setTimeout(()=>{
-      let p=0;
-      const iv = setInterval(()=>{
-        p = Math.min(p+5, 100);
-        const bar = document.getElementById('bar-'+id);
-        const pct = document.getElementById('pct-'+id);
-        if (bar) bar.style.width=p+'%';
-        if (pct) pct.textContent=p+'%';
-        if(p>=100){clearInterval(iv);}
-      },20);
-    }, delay);
-    delay += s.time;
-  });
-  setTimeout(()=>toast('✅ Pipeline & Source Verification complete — 1,000 SKUs verified'), delay+400);
+
+  try {
+    const res = await fetch('/api/process', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({text})
+    });
+    const data = await res.json();
+    document.getElementById('pipeline-spinner').style.display = 'none';
+
+    if (!data.ok) {
+      document.getElementById('pipeline-error').style.display = 'block';
+      document.getElementById('pipeline-error').textContent = 'Pipeline error: ' + (data.error || 'Unknown error');
+      return;
+    }
+
+    const r = data.result;
+    const prov = r.provenance || {};
+    const val = r.validation || {};
+    const attrs = r.attributes || {};
+    const evidence = prov.evidence || {};
+    const fieldConfs = prov.field_confidences || {};
+
+    // Meta
+    const metaRows = [
+      ['Name', r.name || '—'],
+      ['Product Type', r.product_type || '—'],
+      ['Manufacturer', r.manufacturer || '—'],
+      ['Part Number', r.part_number || '—'],
+      ['Model', prov.model_used || '—'],
+      ['Confidence', prov.confidence != null ? (prov.confidence * 100).toFixed(0) + '%' : '—'],
+    ];
+    document.getElementById('result-meta').innerHTML = metaRows.map(([k,v]) =>
+      `<div><span style="color:var(--muted)">${k}</span></div><div style="font-weight:500">${v}</div>`
+    ).join('');
+
+    // Attributes
+    const attrHtml = Object.entries(attrs)
+      .filter(([,v]) => v != null)
+      .map(([k,v]) => {
+        const conf = fieldConfs[k];
+        const confColor = conf == null ? 'var(--muted)' : conf >= 0.8 ? 'var(--green)' : conf >= 0.5 ? '#e3b341' : 'var(--red)';
+        const confBar = conf != null ? `<span style="display:inline-block;width:${(conf*40).toFixed(0)}px;height:4px;background:${confColor};border-radius:2px;margin-left:6px;vertical-align:middle"></span><span style="font-size:11px;color:${confColor};margin-left:4px">${(conf*100).toFixed(0)}%</span>` : '';
+        const ev = evidence[k] ? `<div style="color:var(--muted);font-size:11px;margin-top:2px">"${evidence[k]}"</div>` : '';
+        return `<div style="padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted);min-width:160px;display:inline-block">${k}</span><span style="font-weight:500">${v}</span>${confBar}${ev}</div>`;
+      }).join('');
+    document.getElementById('result-attrs').innerHTML = attrHtml || '<span style="color:var(--muted)">No attributes extracted</span>';
+
+    // Evidence
+    const evHtml = Object.entries(evidence).map(([k,v]) =>
+      `<div style="padding:4px 0;border-bottom:1px solid var(--border)"><span style="color:var(--muted);min-width:160px;display:inline-block">${k}</span><span style="font-style:italic;color:#8b949e">"${v}"</span></div>`
+    ).join('');
+    document.getElementById('result-evidence').innerHTML = evHtml || '<span style="color:var(--muted)">No evidence captured</span>';
+
+    // Validation
+    const issues = val.issues || [];
+    const review = val.needs_human_review;
+    const passLabel = val.passed_rules
+      ? `<span style="color:var(--green);font-weight:600">✅ Passed all validation rules</span>`
+      : `<span style="color:#e3b341;font-weight:600">⚠️ ${issues.length} issue(s) — routed to review queue</span>`;
+    const issueList = issues.length ? `<ul style="margin:8px 0 0 16px;color:var(--muted)">${issues.map(i=>`<li>${i}</li>`).join('')}</ul>` : '';
+    document.getElementById('result-validation').innerHTML = passLabel + issueList;
+
+    document.getElementById('live-result').style.display = 'block';
+    toast('✅ Pipeline complete — real AI extraction done');
+  } catch(e) {
+    document.getElementById('pipeline-spinner').style.display = 'none';
+    document.getElementById('pipeline-error').style.display = 'block';
+    document.getElementById('pipeline-error').textContent = 'Could not reach APEX API: ' + e.message;
+  }
 }
 
 function nav_direct(page) {
