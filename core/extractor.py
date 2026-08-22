@@ -40,8 +40,61 @@ Rules:
 """
 
 
-def build_client() -> anthropic.Anthropic:
-    return anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+def build_client() -> anthropic.Anthropic | None:
+    """Return configured Anthropic client from core.llm_client or None."""
+    from core.llm_client import get_client
+    return get_client()
+
+
+def _extract_heuristic(doc: IngestedDocument, product_type: str, attr_names: list) -> dict:
+    """Rule-based attribute extraction fallback when LLM is unavailable."""
+    text = doc.text or doc.excerpt or ""
+    attrs: dict = {a: None for a in attr_names}
+    evidence: dict = {}
+    field_confs: dict = {}
+
+    # Basic entity extraction
+    from loaders.fittings_resolver import resolve_fitting_type, resolve_connection_type, resolve_material
+    from loaders.manufacturer_normaliser import normalise_manufacturer
+
+    mfr_match = normalise_manufacturer(text)
+    mfr_name = mfr_match.manufacturer_name if mfr_match else None
+
+    ft, ft_conf = resolve_fitting_type(text)
+    mat, mat_conf = resolve_material(text)
+    conn, conn_conf = resolve_connection_type(text)
+
+    if "material" in attrs and mat:
+        attrs["material"] = mat
+        evidence["material"] = f"Resolved from text: {text[:60]}"
+        field_confs["material"] = mat_conf
+    if "fitting_type" in attrs and ft:
+        attrs["fitting_type"] = ft
+        evidence["fitting_type"] = f"Resolved from text: {text[:60]}"
+        field_confs["fitting_type"] = ft_conf
+    if "connection_type" in attrs and conn:
+        attrs["connection_type"] = conn
+        evidence["connection_type"] = f"Resolved from text: {text[:60]}"
+        field_confs["connection_type"] = conn_conf
+
+    # Extract part number heuristic
+    pn_match = re.search(r"\b([A-Z0-9]{3,}-[A-Z0-9\-_./]+|[A-Z0-9]{5,})\b", text)
+    part_num = pn_match.group(1) if pn_match else None
+
+    extracted = {
+        "product_id": None,
+        "product_type": product_type,
+        "name": (text[:60].strip() if text else "Industrial Product"),
+        "manufacturer": mfr_name,
+        "part_number": part_num,
+        "attributes": attrs,
+        "extraction_confidence": 0.75 if any(attrs.values()) else 0.40,
+        "field_confidences": field_confs,
+        "evidence": evidence,
+    }
+    extracted["provenance"] = _build_provenance(doc, "heuristic-rule-engine", extracted)
+    extracted["validation"] = {"issues": [], "passed_rules": False, "needs_human_review": True}
+    return extracted
 
 
 def extract(
@@ -55,37 +108,61 @@ def extract(
         client = build_client()
     attr_names = get_attribute_names(product_type)
     attribute_nulls = ",\n    ".join(f'"{a}": null' for a in attr_names)
-    user_content = _build_user_content(doc, product_type, attribute_nulls)
-    response = client.messages.create(
-        model=model,
-        max_tokens=2500,
-        system=EXTRACTION_SYSTEM,
-        messages=[{"role": "user", "content": user_content}],
-    )
-    raw = response.content[0].text.strip()
-    extracted = _parse_and_validate(raw)
-    extracted["provenance"] = _build_provenance(doc, model, extracted)
-    extracted["validation"] = {"issues": [], "passed_rules": False, "needs_human_review": True}
-    return extracted
+
+    if client is not None:
+        try:
+            user_content = _build_user_content(doc, product_type, attribute_nulls)
+            response = client.messages.create(
+                model=model,
+                max_tokens=2500,
+                system=EXTRACTION_SYSTEM,
+                messages=[{"role": "user", "content": user_content}],
+            )
+            raw = response.content[0].text.strip()
+            extracted = _parse_and_validate(raw)
+            extracted["provenance"] = _build_provenance(doc, model, extracted)
+            extracted["validation"] = {"issues": [], "passed_rules": False, "needs_human_review": True}
+            return extracted
+        except Exception:
+            pass
+
+    return _extract_heuristic(doc, product_type, attr_names)
 
 
 def classify_product_type(
     doc: IngestedDocument,
     client: anthropic.Anthropic | None = None,
 ) -> str:
-    """Cheap Haiku call to detect product type from document text."""
+    """Classify product type using Claude Haiku with heuristic fallback."""
     if client is None:
         client = build_client()
     text = (doc.text or doc.excerpt or "")[:1000]
     valid = set(PRODUCT_TYPES)
-    response = client.messages.create(
-        model=CLASSIFICATION_MODEL,
-        max_tokens=10,
-        system=f"Reply with ONE word only from: {', '.join(valid)}. No other output.",
-        messages=[{"role": "user", "content": f"Classify this product:\n{text}"}],
-    )
-    result = response.content[0].text.strip().lower()
-    return result if result in valid else "bearing"
+
+    if client is not None:
+        try:
+            response = client.messages.create(
+                model=CLASSIFICATION_MODEL,
+                max_tokens=10,
+                system=f"Reply with ONE word only from: {', '.join(valid)}. No other output.",
+                messages=[{"role": "user", "content": f"Classify this product:\n{text}"}],
+            )
+            result = response.content[0].text.strip().lower()
+            if result in valid:
+                return result
+        except Exception:
+            pass
+
+    # Heuristic fallback
+    text_lower = text.lower()
+    for pt in PRODUCT_TYPES:
+        if pt in text_lower:
+            return pt
+    if any(k in text_lower for k in ("cplg", "coupling", "fitting", "elbow", "tee", "nipple")):
+        return "coupling"
+    if any(k in text_lower for k in ("vlv", "valve", "ball valve", "gate valve")):
+        return "valve"
+    return "bearing"
 
 
 def _build_user_content(

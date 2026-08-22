@@ -14,7 +14,15 @@ Usage:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Optional
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / ".env")
+    load_dotenv(Path(__file__).parent.parent / ".env.local")
+except Exception:
+    pass
 
 from core.constants import CLASSIFICATION_MODEL, EXTRACTION_MODEL
 
