@@ -14,15 +14,13 @@ RUN pip install --no-cache-dir --root-user-action=ignore -r requirements.txt
 
 COPY . .
 
-# Create data directories
-RUN mkdir -p data/product_catalog_db data/sample_docs results
-
-# Run as non-root user for security
-RUN useradd -m -u 1000 apex && chown -R apex:apex /app
-USER apex
+# Create data directories with correct permissions
+RUN mkdir -p data/product_catalog_db data/sample_docs results data/unihack data/chroma_db \
+    && chmod -R 777 data results
 
 EXPOSE 8080
 
 ENV PYTHONUNBUFFERED=1
+ENV PORT=8080
 
 CMD ["python3", "run_ui.py", "--port=8080", "--no-browser"]
