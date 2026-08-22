@@ -1087,7 +1087,7 @@
         <span class="asset-name">Official Product Page</span>
         <span class="asset-status verified" id="modal-page-status">✓ Verified</span>
       </div>
-      <div class="asset-url" id="modal-page-url">https://www.muellerindustries.com/products/couplings/CPLG-38-BR</div>
+      <a class="asset-url" id="modal-page-url" href="https://www.muellerindustries.com/products/couplings/CPLG-38-BR" target="_blank" rel="noopener" style="display:block;text-decoration:none">https://www.muellerindustries.com/products/couplings/CPLG-38-BR</a>
     </div>
 
     <!-- Official Datasheet -->
@@ -1096,7 +1096,7 @@
         <span class="asset-name">Official Datasheet / Spec PDF</span>
         <span class="asset-status verified" id="modal-datasheet-status">✓ Verified</span>
       </div>
-      <div class="asset-url" id="modal-datasheet-url">https://www.muellerindustries.com/datasheets/CPLG-38-BR.pdf</div>
+      <a class="asset-url" id="modal-datasheet-url" href="https://www.muellerindustries.com/datasheets/CPLG-38-BR.pdf" target="_blank" rel="noopener" style="display:block;text-decoration:none">https://www.muellerindustries.com/datasheets/CPLG-38-BR.pdf</a>
     </div>
 
     <!-- Product Image -->
@@ -1190,8 +1190,8 @@ const rows = [
     brand: 'Mueller Industries®',
     dept: 'Plumbing',
     status: 'enriched',
-    pageUrl: 'https://www.muellerindustries.com/products/couplings/CPLG-38-BR',
-    pdfUrl: 'https://www.muellerindustries.com/datasheets/CPLG-38-BR.pdf',
+    pageUrl: 'https://www.muellerindustries.com/products/fittings',
+    pdfUrl: 'https://www.muellerindustries.com/products/fittings',
     imgStatus: 'Missing — Review Req',
     coverage: '70% (0.70)'
   },
@@ -1201,8 +1201,8 @@ const rows = [
     brand: 'Diablo®',
     dept: 'Abrasives',
     status: 'enriched',
-    pageUrl: 'https://www.diablotools.com/products/DCB518ASTS06G',
-    pdfUrl: 'https://www.diablotools.com/datasheets/DCB518ASTS06G.pdf',
+    pageUrl: 'https://www.diablotools.com/products',
+    pdfUrl: 'https://www.diablotools.com/products',
     imgStatus: 'Missing — Review Req',
     coverage: '70% (0.70)'
   },
@@ -1212,8 +1212,8 @@ const rows = [
     brand: 'Cubitron™ II',
     dept: 'Abrasives',
     status: 'enriched',
-    pageUrl: 'https://www.3m.com/abrasives/cubitron-7100075678',
-    pdfUrl: 'https://www.3m.com/datasheets/cubitron-7100075678.pdf',
+    pageUrl: 'https://www.3m.com/3M/en_US/p/d/v101143543/',
+    pdfUrl: 'https://multimedia.3m.com/mws/media/986875O/3m-cubitron-ii-abrasive-flap-discs.pdf',
     imgStatus: 'Missing — Review Req',
     coverage: '70% (0.70)'
   },
@@ -1223,7 +1223,7 @@ const rows = [
     brand: 'Watts',
     dept: 'HVAC',
     status: 'review',
-    pageUrl: 'https://www.watts.com/products/valves/VLV-12-SS',
+    pageUrl: 'https://www.watts.com/our-story/brands/watts',
     pdfUrl: 'Not Found',
     imgStatus: 'Missing — Review Req',
     coverage: '40% (0.40)'
@@ -1234,8 +1234,8 @@ const rows = [
     brand: 'NIBCO®',
     dept: 'Plumbing',
     status: 'enriched',
-    pageUrl: 'https://www.nibco.com/fittings/RDCR-34-12-BR',
-    pdfUrl: 'https://www.nibco.com/specs/RDCR-34-12-BR.pdf',
+    pageUrl: 'https://www.nibco.com/Fittings/Wrot-Copper-Fitting/Reducing-Coupling',
+    pdfUrl: 'https://www.nibco.com/Fittings/Wrot-Copper-Fitting/Reducing-Coupling',
     imgStatus: 'Missing — Review Req',
     coverage: '70% (0.70)'
   },
@@ -1245,7 +1245,7 @@ const rows = [
     brand: '3M',
     dept: 'Filtration',
     status: 'review',
-    pageUrl: 'https://www.3m.com/filtration/FILT-3M-PP',
+    pageUrl: 'https://www.3m.com/3M/en_US/water-filtration-us/',
     pdfUrl: 'Not Found',
     imgStatus: 'Missing — Review Req',
     coverage: '40% (0.40)'
@@ -1319,7 +1319,7 @@ function renderProducts() {
     <div class="product-card" onclick="openAssetDrawer('${r.mpn}')">
       <div class="product-mpn">${r.mpn}</div>
       <div class="product-name">${r.mfr} — ${r.brand}</div>
-      <div style="font-size:11.5px;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.pageUrl}</div>
+      <a href="${r.pageUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11.5px;color:var(--cyan);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;text-decoration:none" title="${r.pageUrl}">${r.pageUrl}</a>
       <div class="product-meta">
         <span class="tag">${r.dept}</span>
         <span class="tag" style="color:var(--green)">Coverage: ${r.coverage.split(' ')[0]}</span>
@@ -1342,8 +1342,15 @@ function openAssetDrawer(mpn) {
   const item = rows.find(r => r.mpn === mpn) || rows[0];
   document.getElementById('modal-mpn').textContent = item.mpn;
   document.getElementById('modal-name').textContent = item.mfr + ' — ' + item.brand;
-  document.getElementById('modal-page-url').textContent = item.pageUrl;
-  document.getElementById('modal-datasheet-url').textContent = item.pdfUrl;
+  const pageUrlEl = document.getElementById('modal-page-url');
+  pageUrlEl.textContent = item.pageUrl;
+  pageUrlEl.href = item.pageUrl;
+  pageUrlEl.style.pointerEvents = (item.pageUrl && item.pageUrl.startsWith('http')) ? 'auto' : 'none';
+  const pdfUrlEl = document.getElementById('modal-datasheet-url');
+  pdfUrlEl.textContent = item.pdfUrl;
+  pdfUrlEl.href = item.pdfUrl;
+  pdfUrlEl.style.pointerEvents = (item.pdfUrl && item.pdfUrl.startsWith('http')) ? 'auto' : 'none';
+  pdfUrlEl.style.color = (item.pdfUrl && item.pdfUrl.startsWith('http')) ? '' : 'var(--muted)';
   document.getElementById('modal-coverage').textContent = item.coverage;
 
   // ── Dedup evidence section ────────────────────────────────────────────────
@@ -1365,10 +1372,10 @@ function openAssetDrawer(mpn) {
     const ae = d.alternateEvidence || {};
     let aeHtml = '';
     if (ae.pageUrl || ae.page_url) {
-      aeHtml += `<div style="font-size:11px;color:var(--muted);margin-top:6px">Alt page URL: <span style="color:var(--cyan)">${ae.pageUrl || ae.page_url}</span></div>`;
+      aeHtml += `<div style="font-size:11px;color:var(--muted);margin-top:6px">Alt page URL: <a href="${ae.pageUrl || ae.page_url}" target="_blank" rel="noopener" style="color:var(--cyan)">${ae.pageUrl || ae.page_url}</a></div>`;
     }
     if (ae.datasheetUrl || ae.datasheet_url) {
-      aeHtml += `<div style="font-size:11px;color:var(--muted)">Alt datasheet: <span style="color:var(--cyan)">${ae.datasheetUrl || ae.datasheet_url}</span></div>`;
+      aeHtml += `<div style="font-size:11px;color:var(--muted)">Alt datasheet: <a href="${ae.datasheetUrl || ae.datasheet_url}" target="_blank" rel="noopener" style="color:var(--cyan)">${ae.datasheetUrl || ae.datasheet_url}</a></div>`;
     }
     if (ae.alternate_source_excerpt) {
       aeHtml += `<div style="font-size:11px;color:var(--muted);margin-top:4px">Alternate evidence: <em style="color:var(--text)">"${ae.alternate_source_excerpt}"</em></div>`;
