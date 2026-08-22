@@ -629,13 +629,44 @@
   <div class="content page" id="page-pipeline">
     <div style="max-width:760px">
 
-      <!-- Live Process Box -->
+      <!-- Live AI Input -->
       <div class="card" style="margin-bottom:20px">
+        <div class="card-title" style="margin-bottom:4px">&#9889; Live APEX Pipeline &mdash; Real AI Enrichment</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Paste any raw product description or MPN. APEX classifies, extracts attributes, normalises UOM, detects conflicts and validates &mdash; live via Claude AI.</div>
+        <textarea id="live-input" rows="3" placeholder="e.g.  3/8 CPLG BRS 150# NPT  |  Mueller Industries  |  CPLG-38-BR" style="width:100%;box-sizing:border-box;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--text);font-family:inherit;font-size:13px;resize:vertical;outline:none;"></textarea>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="run-btn" style="flex:1;justify-content:center" onclick="runLivePipeline()">&#9654; Run Live Pipeline</button>
+          <button class="dl-btn" onclick="fillSample()">Use Sample Row</button>
+          <span style="font-size:11px;padding:3px 10px;border-radius:12px;background:var(--green-bg);color:var(--green);font-weight:600;">API &#10003; Live</span>
+        </div>
       </div>
-      <div class="card" id="progress-card" style="display:none">
-        <div class="card-title" style="margin-bottom:16px">⚡ Pipeline & Source Verification Active…</div>
-        <div class="progress-section" id="progress-steps"></div>
+
+      <div id="pipeline-spinner" style="display:none;text-align:center;padding:32px;color:var(--muted);font-size:13px">
+        <div style="font-size:28px;margin-bottom:8px">&#9881;</div>
+        <div>Running APEX pipeline &mdash; classifying, extracting, validating&hellip;</div>
       </div>
+
+      <div id="pipeline-error" style="display:none;background:rgba(248,81,73,.1);border:1px solid var(--red);border-radius:8px;padding:16px;color:var(--red);font-size:13px;margin-bottom:16px"></div>
+
+      <div id="live-result" style="display:none">
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:12px">Enriched Product</div>
+          <div id="result-meta" style="display:grid;grid-template-columns:140px 1fr;gap:8px 16px;font-size:13px"></div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:12px">Extracted Attributes</div>
+          <div id="result-attrs" style="font-size:13px"></div>
+        </div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="margin-bottom:12px">Evidence &amp; Source Quotes</div>
+          <div id="result-evidence" style="font-size:13px"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">Validation</div>
+          <div id="result-validation" style="font-size:13px"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
