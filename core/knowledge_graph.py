@@ -184,7 +184,7 @@ def index_product_in_graph(graph, product: dict) -> str:
 
 def graph_stats(graph) -> dict:
     """Return summary statistics for the knowledge graph."""
-    nx = _load_nx()
+    _load_nx()
     edge_types: dict = {}
     for _, _, data in graph.edges(data=True):
         et = data.get("edge_type", "unknown")

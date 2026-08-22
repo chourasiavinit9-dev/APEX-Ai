@@ -34,7 +34,7 @@ AGENT_TOOLS = [
             "type": "object",
             "properties": {
                 "product_type": {"type": "string",
-                                 "enum": ["bearing","valve","sensor","coupling","fastener","pump"]},
+                                 "enum": ["bearing", "valve", "sensor", "coupling", "fastener", "pump"]},
                 "focus_fields": {"type": "array", "items": {"type": "string"}},
             },
             "required": ["product_type"],
@@ -114,7 +114,7 @@ def _initial_message(doc: IngestedDocument, product_type: str) -> str:
 
 
 def _process_tool_calls(content, doc, product_type, product,
-                         extractor_fn, web_enrich_fn, catalog_query_fn):
+                        extractor_fn, web_enrich_fn, catalog_query_fn):
     """Process all tool_use blocks in one assistant turn."""
     tool_results = []
     human_review = False
@@ -128,7 +128,7 @@ def _process_tool_calls(content, doc, product_type, product,
         if flag:
             human_review = True
         tool_results.append({"type": "tool_result", "tool_use_id": block.id,
-                              "content": json.dumps(result)})
+                             "content": json.dumps(result)})
     return tool_results, product, human_review
 
 

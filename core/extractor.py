@@ -7,7 +7,6 @@ All schemas from core/pydantic_schemas.py.
 """
 from __future__ import annotations
 import json
-import os
 import re
 from datetime import datetime, timezone
 
@@ -237,8 +236,6 @@ def _build_provenance(doc: IngestedDocument, model: str, extracted: dict) -> dic
         "evidence": extracted.pop("evidence", {}),
         "web_enriched_fields": [],
     }
-
-
 
 
 # ── Fix 4: Programmatic unit conversion fallback ──────────────────────────────

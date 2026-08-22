@@ -22,9 +22,8 @@ import os
 import re
 import secrets
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
-from functools import wraps
 from typing import Optional
 
 try:
@@ -40,7 +39,6 @@ from core.constants import (
     JWT_EXPIRY_MINUTES,
     RATE_LIMIT_MAX_ATTEMPTS,
     RATE_LIMIT_WINDOW_MINUTES,
-    RATE_LIMIT_LOCKOUT_MINUTES,
 )
 
 
@@ -359,6 +357,8 @@ def verify_password(password: str, password_hash: str) -> bool:
         return bcrypt.checkpw(password.encode(), password_hash.encode())
     except ImportError:
         return False
+
+
 def validate_password_strength(password: str) -> list[str]:
     """
     Returns list of failed requirements (empty = strong enough).

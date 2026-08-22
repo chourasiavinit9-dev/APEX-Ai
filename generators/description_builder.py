@@ -126,7 +126,7 @@ def _enforce_limits(result: dict) -> dict:
         result["mobile_desc_valid"] = 60 <= len(text) <= 80
         if len(text) > 80:
             result["mobile_desc"] = text[:77] + "..."
-        
+
     for field in ("short_desc", "long_desc", "marketing_copy"):
         if field in result and isinstance(result[field], str):
             result[field] = normalise_uom(result[field])
@@ -135,7 +135,7 @@ def _enforce_limits(result: dict) -> dict:
 
 
 def _fallback_descriptions(brand: str, mpn: str,
-                            item_type: str, attrs: dict) -> dict:
+                           item_type: str, attrs: dict) -> dict:
     """Rule-based fallback when LLM call fails."""
     attr_str = ", ".join(f"{k}: {v}" for k, v in list(attrs.items())[:5])
     short = f"{brand} {mpn} {item_type}"[:120]

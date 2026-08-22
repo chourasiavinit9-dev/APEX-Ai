@@ -1,5 +1,5 @@
 """Security package for APEX."""
-from .middleware import (
+from .middleware import (  # noqa: F401
     create_token, verify_token, hash_token,
     check_rate_limit, record_login_attempt, get_lockout_remaining,
     sanitize_string, sanitize_dict,

@@ -32,11 +32,13 @@ def _check_mpn_match(row: dict, norm_mpn: str, exclude_id: Optional[str]) -> Opt
     enriched = json.loads(row["enriched_json"] or "{}")
     mfr = enriched.get("manufacturer_name", "")
     if row_mpn == norm_mpn:
-        return {"product_id": row["id"], "mpn": row["mpn"], "manufacturer": mfr, "similarity": 1.0, "match_type": "exact_mpn"}
+        return {"product_id": row["id"], "mpn": row["mpn"],
+                "manufacturer": mfr, "similarity": 1.0, "match_type": "exact_mpn"}
     if norm_mpn in row_mpn or row_mpn in norm_mpn:
         sim = min(len(norm_mpn), len(row_mpn)) / max(len(norm_mpn), len(row_mpn))
         if sim >= 0.7:
-            return {"product_id": row["id"], "mpn": row["mpn"], "manufacturer": mfr, "similarity": round(sim, 3), "match_type": "partial_mpn"}
+            return {"product_id": row["id"], "mpn": row["mpn"], "manufacturer": mfr,
+                    "similarity": round(sim, 3), "match_type": "partial_mpn"}
     return None
 
 
@@ -48,7 +50,11 @@ def find_duplicates_in_db(mpn: str, manufacturer: str = "",
     if not norm_mpn:
         return []
     with get_conn() as conn:
-        q = "SELECT id, mpn, enriched_json FROM products WHERE job_id=?" if job_id else "SELECT id, mpn, enriched_json FROM products"
+        q = (
+            "SELECT id, mpn, enriched_json FROM products WHERE job_id=?"
+            if job_id
+            else "SELECT id, mpn, enriched_json FROM products"
+        )
         params = (job_id,) if job_id else ()
         rows = conn.execute(q, params).fetchall()
     candidates = [cand for row in rows if (cand := _check_mpn_match(row, norm_mpn, exclude_id))]

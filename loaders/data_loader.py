@@ -12,7 +12,6 @@ All files have quirks: merged cells, multi-row headers, side-by-side blocks.
 This module isolates all the parsing messiness in one place.
 """
 from __future__ import annotations
-import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -58,7 +57,7 @@ def load_manufacturer_list() -> pd.DataFrame:
     path = DATA_DIR / "UniCat_Manufacturer_and_Brand_List.xlsx"
     if not path.exists():
         return pd.DataFrame(columns=["MANUFACTURER_NAME", "MANUFACTURER_CODE",
-                                      "BRAND_NAME", "BRAND_CODE"])
+                                     "BRAND_NAME", "BRAND_CODE"])
     df = pd.read_excel(path, engine="openpyxl")
     df.columns = [c.strip().upper().replace(" ", "_") for c in df.columns]
     # Normalise column names to expected

@@ -94,7 +94,8 @@ def is_official_manufacturer_source(url: str, approved_manufacturer_domains: Set
     """Return True only when URL belongs to an approved manufacturer domain."""
     if not approved_manufacturer_domains or (domain := get_registered_domain(url)) is None:
         return False
-    return any(domain == app.strip().lower() or domain.endswith("." + app.strip().lower()) for app in approved_manufacturer_domains)
+    return any(domain == app.strip().lower() or domain.endswith("." + app.strip().lower())
+               for app in approved_manufacturer_domains)
 
 
 def _rejection_reason_for_domain(url: str, domain: str, approved_manufacturer_domains: Set[str]) -> Optional[str]:
@@ -110,11 +111,15 @@ def _rejection_reason_for_domain(url: str, domain: str, approved_manufacturer_do
 def verify_source_url(url: Optional[str], approved_manufacturer_domains: Set[str]) -> DigitalAsset:
     """Verify a single candidate source URL without network calls."""
     if not url or not (clean := url.strip()):
-        return DigitalAsset(asset_type="unknown", url=None, official_domain=None, status=SourceStatus.NOT_FOUND, rejection_reason="No URL provided")
+        return DigitalAsset(asset_type="unknown", url=None, official_domain=None,
+                            status=SourceStatus.NOT_FOUND, rejection_reason="No URL provided")
     if not clean.startswith(("http://", "https://")):
-        return DigitalAsset(asset_type="unknown", url=clean, official_domain=None, status=SourceStatus.REJECTED, rejection_reason="URL missing http/https scheme")
+        return DigitalAsset(asset_type="unknown", url=clean, official_domain=None,
+                            status=SourceStatus.REJECTED, rejection_reason="URL missing http/https scheme")
     if (domain := get_registered_domain(clean)) is None:
-        return DigitalAsset(asset_type="unknown", url=clean, official_domain=None, status=SourceStatus.REJECTED, rejection_reason="Malformed URL — could not extract domain")
+        return DigitalAsset(asset_type="unknown", url=clean, official_domain=None,
+                            status=SourceStatus.REJECTED, rejection_reason="Malformed URL — could not extract domain")
     if reason := _rejection_reason_for_domain(clean, domain, approved_manufacturer_domains):
-        return DigitalAsset(asset_type="unknown", url=clean, official_domain=domain, status=SourceStatus.REJECTED, rejection_reason=reason)
+        return DigitalAsset(asset_type="unknown", url=clean, official_domain=domain,
+                            status=SourceStatus.REJECTED, rejection_reason=reason)
     return DigitalAsset(asset_type="unknown", url=clean, official_domain=domain, status=SourceStatus.VERIFIED)

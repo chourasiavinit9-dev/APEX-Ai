@@ -191,17 +191,17 @@ def score_against_ground_truth(output: dict, ground_truth: dict) -> dict:
         "long_desc", "brand_name", "classpath",
     ]
     results = {}
-    for field in fields_to_check:
-        out_val = str(output.get(field, "")).strip().lower()
-        gt_val = str(ground_truth.get(field, "")).strip().lower()
+    for fname in fields_to_check:
+        out_val = str(output.get(fname, "")).strip().lower()
+        gt_val = str(ground_truth.get(fname, "")).strip().lower()
         if not gt_val:
-            results[field] = "no_ground_truth"
+            results[fname] = "no_ground_truth"
         elif out_val == gt_val:
-            results[field] = "exact_match"
+            results[fname] = "exact_match"
         elif gt_val in out_val or out_val in gt_val:
-            results[field] = "partial_match"
+            results[fname] = "partial_match"
         else:
-            results[field] = "mismatch"
+            results[fname] = "mismatch"
     results["_score"] = sum(
         1 for v in results.values() if v == "exact_match"
     ) / max(len(fields_to_check), 1)

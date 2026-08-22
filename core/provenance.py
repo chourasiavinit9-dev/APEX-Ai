@@ -11,7 +11,7 @@ Every populated field must carry:
 from __future__ import annotations
 
 from dataclasses import dataclass, field as dc_field
-from typing import Optional, Dict, List, Any
+from typing import Optional, Dict
 
 from core.constants import CONFIDENCE_REVIEW_THRESHOLD
 
@@ -121,7 +121,7 @@ def build_provenance_for_enriched(raw_row: dict, enriched: dict) -> RecordProven
     ))
 
     # Classpath provenance
-    classpath = enriched.get("classpath", "")
+    enriched.get("classpath", "")
     pipeline_steps = enriched.get("_pipeline_steps", [])
     if "taxonomy_classify" in pipeline_steps:
         prov.set("classpath", FieldProvenance(

@@ -10,7 +10,7 @@ Checks:
 from __future__ import annotations
 
 import re
-from typing import List, Dict
+from typing import List
 
 
 def detect_conflicts(raw_row: dict, enriched: dict) -> List[dict]:
@@ -37,9 +37,13 @@ def _check_brand_mismatch(raw: dict, enriched: dict) -> List[dict]:
     conflicts = []
     bf = _extract_brand_fields(raw)
     if len(bf) >= 2 and len({v.lower().strip().rstrip("®™").strip() for v in bf.values()}) > 1:
-        conflicts.append({"type": "brand_mismatch", "severity": "warning", "message": f"Brand fields disagree: {bf}", "fields": list(bf.keys())})
+        conflicts.append({"type": "brand_mismatch", "severity": "warning",
+                         "message": f"Brand fields disagree: {bf}", "fields": list(bf.keys())})
     if enriched.get("brand_name") and enriched.get("brand_match_type") == "fallback":
-        conflicts.append({"type": "brand_unresolved", "severity": "info", "message": f"Brand '{enriched.get('raw_brand', '')}' not in master list — using as-is", "fields": ["brand_name"]})
+        conflicts.append({"type": "brand_unresolved",
+                          "severity": "info",
+                          "message": f"Brand '{enriched.get('raw_brand', '')}' not in master list — using as-is",
+                          "fields": ["brand_name"]})
     return conflicts
 
 
@@ -83,7 +87,7 @@ def _check_description_consistency(enriched: dict) -> List[dict]:
     """Check that descriptions are consistent with attributes."""
     conflicts = []
     brand = enriched.get("brand_name", "")
-    invoice = enriched.get("invoice_desc", "")
+    enriched.get("invoice_desc", "")
     mobile = enriched.get("mobile_desc", "")
 
     # Brand should appear in mobile desc
