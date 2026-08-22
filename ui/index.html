@@ -163,6 +163,30 @@
     flex-shrink: 0;
   }
   .notif-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%; position: absolute; top: 7px; right: 7px; }
+  /* Notification Panel */
+  .notif-panel { position:absolute; top:48px; right:120px; width:320px; background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,.5); z-index:300; display:none; overflow:hidden; }
+  .notif-panel.open { display:block; }
+  .notif-header { padding:12px 16px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; font-weight:600; font-size:13px; }
+  .notif-item { padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; }
+  .notif-item:hover { background:var(--card2); }
+  .notif-item:last-child { border-bottom:none; }
+  .notif-item-title { font-size:12.5px; font-weight:500; color:var(--text); }
+  .notif-item-sub { font-size:11px; color:var(--muted); margin-top:3px; }
+  .notif-badge { font-size:10px; background:var(--green-bg); color:var(--green); padding:2px 6px; border-radius:8px; font-weight:600; }
+  /* Search Overlay */
+  .search-overlay { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:400; display:none; align-items:flex-start; justify-content:center; padding-top:80px; }
+  .search-overlay.open { display:flex; }
+  .search-modal { background:var(--card); border:1px solid var(--border); border-radius:14px; width:560px; max-width:90vw; overflow:hidden; box-shadow:0 16px 48px rgba(0,0,0,.6); }
+  .search-modal-input { display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid var(--border); }
+  .search-modal-input input { flex:1; background:none; border:none; outline:none; color:var(--text); font-size:15px; font-family:inherit; }
+  .search-results { max-height:380px; overflow-y:auto; }
+  .search-result-item { padding:10px 18px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .15s; }
+  .search-result-item:hover { background:var(--card2); }
+  .search-result-item:last-child { border-bottom:none; }
+  .search-result-mpn { font-size:13px; font-weight:600; color:var(--text); }
+  .search-result-sub { font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .search-result-tag { font-size:10.5px; color:var(--green); font-weight:600; }
+  .search-empty { padding:32px; text-align:center; color:var(--muted); font-size:13px; }
   .run-btn {
     display: flex;
     align-items: center;
@@ -493,11 +517,46 @@
     <div class="page-title" id="topbar-title">Dashboard</div>
     <div class="search-box">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="var(--muted)"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/></svg>
-      <input id="search-input" placeholder="Search SKU or Brand…" oninput="filterProducts(this.value)">
+      <input id="search-input" placeholder="Search SKU or Brand…" oninput="filterProducts(this.value)" onfocus="openSearchOverlay()" readonly>
       <span class="kbd">⌘F</span>
     </div>
-    <div class="notif-btn" onclick="toast('Pipeline status: 1,000 SKUs ready')"><span>🔔</span><div class="notif-dot"></div></div>
+    <div class="notif-btn" onclick="toggleNotifPanel()" id="notif-btn"><span>🔔</span><div class="notif-dot" id="notif-dot"></div></div>
     <button class="run-btn" onclick="runPipeline()">▶ Run Pipeline</button>
+  </div>
+
+  <!-- Notification Panel -->
+  <div class="notif-panel" id="notif-panel">
+    <div class="notif-header">
+      <span>Notifications</span>
+      <span class="notif-badge" id="notif-count">3 new</span>
+    </div>
+    <div class="notif-item" onclick="notifClick('pipeline')">
+      <div class="notif-item-title">✅ Pipeline run complete</div>
+      <div class="notif-item-sub">285 records processed · 0 errors · 2 min ago</div>
+    </div>
+    <div class="notif-item" onclick="notifClick('products')">
+      <div class="notif-item-title">⚠️ 3 products flagged for review</div>
+      <div class="notif-item-sub">Coverage score &lt; 0.70 · missing datasheets · just now</div>
+    </div>
+    <div class="notif-item" onclick="notifClick('analytics')">
+      <div class="notif-item-title">🔍 Duplicate detected</div>
+      <div class="notif-item-sub">CPLG-38-BR-DUP matched CPLG-38-BR at 0.97 similarity · 5 min ago</div>
+    </div>
+    <div class="notif-item" style="text-align:center;padding:10px">
+      <span style="font-size:11.5px;color:var(--green);cursor:pointer" onclick="clearNotifs()">Clear all notifications</span>
+    </div>
+  </div>
+
+  <!-- Search Overlay -->
+  <div class="search-overlay" id="search-overlay" onclick="closeSearchOverlay(event)">
+    <div class="search-modal" onclick="event.stopPropagation()">
+      <div class="search-modal-input">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--muted)"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.868-3.833zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/></svg>
+        <input id="search-overlay-input" placeholder="Search by SKU, MPN, Brand, or Product Type…" oninput="runOverlaySearch(this.value)" autofocus>
+        <span style="font-size:11px;color:var(--muted);cursor:pointer" onclick="closeSearchOverlay()">ESC</span>
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
   </div>
 
   <!-- ══ DASHBOARD PAGE ══ -->
@@ -1044,28 +1103,56 @@
 
   <!-- ══ SETTINGS PAGE ══ -->
   <div class="content page" id="page-settings">
-    <div class="card" style="max-width:600px">
-      <div class="card-title" style="margin-bottom:20px">Pipeline & Security Settings</div>
-      <div class="settings-row">
-        <div><div class="settings-label">Official Source Verification</div><div class="settings-sub">Strict manufacturer domain filtering (Block marketplaces)</div></div>
-        <div class="toggle" onclick="this.classList.toggle('off')"></div>
+    <div style="max-width:600px">
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title" style="margin-bottom:4px">Pipeline &amp; Security Settings</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Changes are saved instantly and persist across sessions.</div>
+        <div class="settings-row">
+          <div><div class="settings-label">Official Source Verification</div><div class="settings-sub">Strict manufacturer domain filtering — blocks Amazon, Grainger, Zoro &amp; 35+ marketplaces</div></div>
+          <div class="toggle" id="tog-source-verify" onclick="toggleSetting(this,'source_verify')"></div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Web Enrichment (Claude AI)</div><div class="settings-sub">Trigger Claude Sonnet sparse enrichment when &lt;3 attributes are extracted</div></div>
+          <div class="toggle" id="tog-web-enrich" onclick="toggleSetting(this,'web_enrich')"></div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">ChromaDB Semantic Indexing</div><div class="settings-sub">Auto-index approved records using MiniLM-L6-v2 for duplicate detection</div></div>
+          <div class="toggle" id="tog-chroma" onclick="toggleSetting(this,'chroma_index')"></div>
+        </div>
+        <div class="settings-row">
+          <div><div class="settings-label">Human Review Routing</div><div class="settings-sub">Flag records with coverage &lt; 0.70 or missing datasheets for analyst queue</div></div>
+          <div class="toggle" id="tog-review" onclick="toggleSetting(this,'human_review')"></div>
+        </div>
+        <div class="settings-row" style="border-bottom:none">
+          <div><div class="settings-label">Deduplication Threshold</div><div class="settings-sub">Cosine similarity threshold for duplicate flagging (default: 0.95)</div></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input id="dedup-threshold" type="range" min="0.80" max="1.00" step="0.01" value="0.95"
+              oninput="updateThreshold(this.value)"
+              style="width:80px;accent-color:var(--green)">
+            <span id="dedup-val" style="font-size:12px;font-weight:600;color:var(--green);min-width:32px">0.95</span>
+          </div>
+        </div>
       </div>
-      <div class="settings-row">
-        <div><div class="settings-label">Web Enrichment</div><div class="settings-sub">Claude Sonnet sparse enrichment (<3 attributes)</div></div>
-        <div class="toggle" onclick="this.classList.toggle('off')"></div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title" style="margin-bottom:16px">API Configuration</div>
+        <div class="settings-row">
+          <div><div class="settings-label">API Status</div><div class="settings-sub" id="api-status-text">Checking…</div></div>
+          <span id="api-status-badge" style="font-size:11px;padding:3px 10px;border-radius:12px;background:var(--card2);color:var(--muted);font-weight:600">…</span>
+        </div>
+        <div class="settings-row" style="border-bottom:none">
+          <div><div class="settings-label">Version</div><div class="settings-sub">APEX Product Intelligence Platform</div></div>
+          <span style="font-size:11px;color:var(--green);font-weight:600">v1.2 Verified</span>
+        </div>
       </div>
-      <div class="settings-row">
-        <div><div class="settings-label">ChromaDB Indexing</div><div class="settings-sub">Auto-index approved records with MiniLM-L6-v2</div></div>
-        <div class="toggle" onclick="this.classList.toggle('off')"></div>
-      </div>
-      <div class="settings-row">
-        <div><div class="settings-label">Human Review Routing</div><div class="settings-sub">Flag coverage &lt; 0.70 or missing datasheets</div></div>
-        <div class="toggle" onclick="this.classList.toggle('off')"></div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Danger Zone</div>
+        <div class="settings-row" style="border-bottom:none">
+          <div><div class="settings-label" style="color:var(--red)">Reset All Settings</div><div class="settings-sub">Restore all pipeline settings to factory defaults</div></div>
+          <button onclick="resetSettings()" style="background:rgba(248,81,73,.15);border:1px solid var(--red);color:var(--red);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px">Reset</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-
 <!-- ══ DIGITAL ASSET & EVIDENCE MODAL DRAWER ══ -->
 <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer(event)">
   <div class="drawer-modal" onclick="event.stopPropagation()">
@@ -1441,6 +1528,95 @@ function filterProducts(q) {
   renderTable(filtered.length ? filtered : rows);
 }
 
+// ── NOTIFICATION PANEL ────────────────────────────────────────────────────────
+function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  const isOpen = panel.classList.contains('open');
+  closeAllPanels();
+  if (!isOpen) {
+    panel.classList.add('open');
+    document.addEventListener('click', closeOnOutsideClick, { once: true });
+  }
+}
+
+function closeAllPanels() {
+  document.getElementById('notif-panel').classList.remove('open');
+}
+
+function closeOnOutsideClick(e) {
+  if (!document.getElementById('notif-panel').contains(e.target) &&
+      !document.getElementById('notif-btn').contains(e.target)) {
+    closeAllPanels();
+  }
+}
+
+function notifClick(page) {
+  closeAllPanels();
+  nav(page);
+}
+
+function clearNotifs() {
+  document.getElementById('notif-dot').style.display = 'none';
+  document.getElementById('notif-count').textContent = '0 new';
+  document.querySelectorAll('.notif-item:not(:last-child)').forEach(el => {
+    el.innerHTML = '<div class="search-empty" style="padding:8px">No new notifications</div>';
+  });
+  closeAllPanels();
+}
+
+// ── SEARCH OVERLAY ────────────────────────────────────────────────────────────
+function openSearchOverlay() {
+  document.getElementById('search-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('search-overlay-input').focus(), 50);
+  runOverlaySearch('');
+}
+
+function closeSearchOverlay(e) {
+  if (!e || e.target === document.getElementById('search-overlay') || e.target.textContent === 'ESC') {
+    document.getElementById('search-overlay').classList.remove('open');
+    document.getElementById('search-overlay-input').value = '';
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSearchOverlay();
+  if ((e.metaKey || e.ctrlKey) && e.key === 'f') { e.preventDefault(); openSearchOverlay(); }
+});
+
+function runOverlaySearch(q) {
+  const container = document.getElementById('search-results');
+  q = (q || '').toLowerCase().trim();
+  const results = q
+    ? rows.filter(r =>
+        r.mpn.toLowerCase().includes(q) ||
+        r.mfr.toLowerCase().includes(q) ||
+        r.brand.toLowerCase().includes(q) ||
+        r.dept.toLowerCase().includes(q) ||
+        (r.pageUrl && r.pageUrl.toLowerCase().includes(q)))
+    : rows;
+
+  if (!results.length) {
+    container.innerHTML = '<div class="search-empty">No products found for "' + q + '"</div>';
+    return;
+  }
+
+  container.innerHTML = results.slice(0, 12).map(r => `
+    <div class="search-result-item" onclick="searchSelect('${r.mpn}')">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="search-result-mpn">${r.mpn}</div>
+        <span class="search-result-tag">${r.dept}</span>
+        <span class="search-result-tag status-${r.status}" style="margin-left:auto">${r.status}</span>
+      </div>
+      <div class="search-result-sub">${r.mfr} — ${r.brand} · Coverage: ${r.coverage.split(' ')[0]}</div>
+    </div>`).join('');
+}
+
+function searchSelect(mpn) {
+  closeSearchOverlay();
+  nav('products');
+  setTimeout(() => openAssetDrawer(mpn), 200);
+}
+
 // ── PIPELINE DEMO ────────────────────────────────────────────────────────────
 function handleFile(input) {
   if(input.files.length) toast('File loaded: '+input.files[0].name+' · Click Run Live Pipeline');
@@ -1562,6 +1738,85 @@ renderBarChart();
 renderTable(rows);
 renderStages();
 renderProducts();
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+const SETTINGS_DEFAULTS = {
+  source_verify: true,
+  web_enrich: true,
+  chroma_index: true,
+  human_review: true,
+  dedup_threshold: 0.95,
+};
+
+function loadSettings() {
+  const stored = JSON.parse(localStorage.getItem('apex_settings') || '{}');
+  const s = Object.assign({}, SETTINGS_DEFAULTS, stored);
+  const map = {
+    source_verify: 'tog-source-verify',
+    web_enrich: 'tog-web-enrich',
+    chroma_index: 'tog-chroma',
+    human_review: 'tog-review',
+  };
+  Object.entries(map).forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    if (el) { if (!s[key]) el.classList.add('off'); else el.classList.remove('off'); }
+  });
+  const thr = document.getElementById('dedup-threshold');
+  const val = document.getElementById('dedup-val');
+  if (thr) thr.value = s.dedup_threshold;
+  if (val) val.textContent = s.dedup_threshold;
+}
+
+function toggleSetting(el, key) {
+  el.classList.toggle('off');
+  const stored = JSON.parse(localStorage.getItem('apex_settings') || '{}');
+  stored[key] = !el.classList.contains('off');
+  localStorage.setItem('apex_settings', JSON.stringify(stored));
+  toast((stored[key] ? '✅ ' : '⚠️ ') + key.replace(/_/g,' ') + (stored[key] ? ' enabled' : ' disabled'));
+}
+
+function updateThreshold(v) {
+  document.getElementById('dedup-val').textContent = parseFloat(v).toFixed(2);
+  const stored = JSON.parse(localStorage.getItem('apex_settings') || '{}');
+  stored.dedup_threshold = parseFloat(v);
+  localStorage.setItem('apex_settings', JSON.stringify(stored));
+}
+
+function resetSettings() {
+  localStorage.removeItem('apex_settings');
+  loadSettings();
+  toast('🔄 Settings reset to defaults');
+}
+
+async function checkApiStatus() {
+  const badge = document.getElementById('api-status-badge');
+  const text = document.getElementById('api-status-text');
+  if (!badge || !text) return;
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    if (d.api_available) {
+      badge.textContent = '✓ Online';
+      badge.style.background = 'var(--green-bg)';
+      badge.style.color = 'var(--green)';
+      text.textContent = 'Claude AI connected · ' + (d.version || 'APEX-1.0');
+    } else {
+      badge.textContent = '⚠ Degraded';
+      badge.style.color = '#e3b341';
+      text.textContent = 'Heuristic fallback mode active';
+    }
+  } catch(e) {
+    badge.textContent = '✗ Offline';
+    badge.style.color = 'var(--red)';
+    text.textContent = 'Cannot reach API server';
+  }
+}
+
+// Init on load
+window.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  checkApiStatus();
+});
 </script>
 </body>
 </html>
